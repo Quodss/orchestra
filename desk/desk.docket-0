@@ -1,0 +1,10 @@
+:~
+  title+'Sunrise'
+  info+'A schematic agent to brighten your day.'
+  color+0xe4.9b0f
+  version+[0 0 1]
+  website+'https://urbit.org/'
+  license+'MIT'
+  image+''
+  site+/apps/sunrise
+==
