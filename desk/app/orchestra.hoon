@@ -18,7 +18,9 @@
 ++  make-tid
   |=  id=strand-id
   ^-  tid:spider
-  (cat 3 'orchestra-' (spat id))
+  =/  txt=tape  (trip (spat id))
+  =.  txt  (turn txt |=(=char ?:(=('/' char) '-' char)))
+  (rap 3 'orchestra' txt)
 --
 ::
 %+  verb  &
