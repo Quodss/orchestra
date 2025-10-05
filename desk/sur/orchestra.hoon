@@ -6,5 +6,6 @@
   $%  [%new id=strand-id src=strand-source params=strand-params]
       [%del id=strand-id]
       [%upd id=strand-id params=strand-params]
+      [%wipe ~]
   ==
 --

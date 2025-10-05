@@ -168,6 +168,9 @@
       ~&  >>  %orchestra-id-not-present
       `state
     `state(strands (~(put by strands.state) id.act u.rand(params params.act)))
+  ::
+      %wipe
+    `state(products ~)
   ==
 ::
 ++  handle-http
