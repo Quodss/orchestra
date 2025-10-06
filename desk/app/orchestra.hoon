@@ -1,5 +1,10 @@
 /-  *orchestra, spider
-/+  dbug, default-agent, verb, sio=strandio
+/+  dbug, default-agent, verb, server, schooner
+/+  sio=strandio
+=*  stub  ~|(%stub !!)
+=*  name-term     %orchestra
+=*  name-mold     $orchestra
+=/  url-redirect  (cat 3 './apps/' name-term)
 |%
 +$  versioned-state
   $%  state-0
@@ -15,6 +20,11 @@
 --
 ::
 |%
+++  make-tape
+  |=  id=strand-id
+  ^-  tape
+  (trip (spat id))
+::
 ++  make-tid
   |=  id=strand-id
   ^-  tid:spider
@@ -37,7 +47,7 @@
   ::
   ++  on-init
     :_  this  :_  ~
-    [%pass /eyre/connect %arvo %e %connect `/apps/[dap.bowl] dap.bowl]
+    [%pass /eyre/connect %arvo %e %connect `/apps/[name-term] name-term]
   ::
   ++  on-save   !>(state)
   ++  on-load
@@ -60,10 +70,10 @@
     =^  cards  state
       ?+    mark  (on-poke:def mark vase)
           %handle-http-request
-        ?>  =(src.bowl our.bowl)
         (handle-http:hc !<([@ta =inbound-request:eyre] vase))
       ::
           %orchestra-action
+        ?>  =(src.bowl our.bowl)
         (take-action:hc !<(action vase))
       ==
     ::
@@ -176,7 +186,145 @@
 ++  handle-http
   |=  [eyre-id=@ta =inbound-request:eyre]
   ^-  (quip card _state)
-  !!
+  ~&  %handle-http
+  =/  ,request-line:server
+    (parse-request-line:server url.request.inbound-request)
+  ::
+  =+  send=(cury response:schooner eyre-id)
+  ?+    method.request.inbound-request  [(send [405 ~ [%stock ~]]) state]
+  ::
+      ?(%'GET' %'POST')
+    ?+      site
+          :_  state
+          (send [404 ~ [%plain "404 - Not Found"]])
+    ::
+        ?([%apps name-mold ~] [%apps name-mold %$ ~])
+      ?.  authenticated.inbound-request
+        :_  state
+        %-  send
+        [302 ~ [%login-redirect url-redirect]]
+      =/  args=(unit *)
+        ?~  body.request.inbound-request  ~
+        `(parse-request q.u.body.request.inbound-request)
+      :_  state
+      (send [200 ~ manx+(form args)])
+    ==
+  ==
+::
+++  parse-request
+  |=  req=cord
+  ^-  *
+  stub
+::
+++  form
+  |=  args=*
+  ^-  manx
+  ;html
+    ;head
+      ;meta(charset "UTF-8");
+      ;meta(name "viewport", content "width=device-width, initial-scale=1.0");
+      ;title: Orchestra
+      ;style: {style}
+    ==
+  ::
+    ;body
+      ;select#choose-thread(onchange "updateTextBox()")
+        ;option(value ""): --Select--
+      ::
+        ;*
+        %+  turn  ~(tap by strands.state)
+        |=  [k=strand-id v=*]
+        ;option: {(make-tape k)}
+      ==
+      ::
+      ;textarea#script-box
+        =readonly     "readonly"
+        =placeholder  "Script will appear here..."
+        ;+  ;/  ""
+      ==
+      ;script: {js-code}
+    ==
+  ==
+::
+++  render-scripts
+  ^-  tape
+  =;  l=(list (pair tape tape))
+    |-  ^-  tape
+    ?~  l  ""
+    """
+    "{p.i.l}": `{q.i.l}
+    `,
+    {$(l t.l)}
+    """
+  ::
+  %+  turn  ~(tap by strands.state)
+  |=  [k=strand-id v=[src=strand-source params=strand-params]]
+  ::  key and displayed text
+  ::
+  ^-  [tape tape]
+  :-  (make-tape k)
+  %+  weld  ":#  {(render-deps deps.src.v)}\0a::\0a"
+  (trip txt.src.v)
+::
+++  render-deps
+  |=  deps=(list (pair term path))
+  ^-  tape
+  ?~  deps  ""
+  |-  ^-  tape
+  ?~  t.deps  "{(trip p.i.deps)}={(trip (spat q.i.deps))}"
+  "{(trip p.i.deps)}={(trip (spat q.i.deps))}, {$(deps t.deps)}"
+::
+++  js-code
+  ^-  tape
+  """
+  const sources = \{ {render-scripts} };
+  function updateTextBox() \{
+    const select = document.getElementById('choose-thread');
+    const textBox = document.getElementById('script-box');
+    const scriptKey = select.value;
+
+    textBox.value = scriptKey ? sources[scriptKey] : '';
+  }
+  """
+::
+++  style
+  ^~  %-  trip
+  '''
+  body {
+    font-family: monospace;
+    background: #fafafa;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin: 0;
+  }
+  select {
+    padding: 8px 12px;
+    font-size: 1em;
+    margin-bottom: 20px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    background-color: white;
+  }
+  textarea {
+    width: 80ch;
+    height: 25em;
+    font-family: monospace;
+    font-size: 1.5em;
+    white-space: pre;
+    background: #f7f7f7;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 10px;
+    resize: vertical;
+  }
+  h2 {
+    margin-bottom: 10px;
+    text-align: center;
+  }
+  '''
 ::
 ++  emit-stop
   |=  id=strand-id
