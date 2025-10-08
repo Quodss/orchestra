@@ -4,7 +4,7 @@
 =*  stub  ~|(%stub !!)
 =*  name-term     %orchestra
 =*  name-mold     $orchestra
-=/  url-redirect  (cat 3 './apps/' name-term)
+=/  url-redirect  (cat 3 '/apps/' name-term)
 |%
 +$  versioned-state
   $%  state-0
@@ -242,26 +242,72 @@
           :_  state
           (send [404 ~ [%plain "404 - Not Found"]])
     ::
-        ?([%apps name-mold ~] [%apps name-mold %$ ~])
+        ?([%apps name-mold ~] [%apps name-mold %$ ~] [%'~' name-mold ~])
       ?.  authenticated.inbound-request
         :_  state
         %-  send
         [302 ~ [%login-redirect url-redirect]]
-      =/  args=(unit *)
-        ?~  body.request.inbound-request  ~
-        `(parse-request q.u.body.request.inbound-request)
+      ?~  body.request.inbound-request
+        [(send [200 ~ manx+form]) state]
+      =/  args=*  (parse-request q.u.body.request.inbound-request)
+      =^  cards  state  (handle-request args)
       :_  state
-      (send [200 ~ manx+(form args)])
+      %+  weld  cards
+      (send 302 ~ [%redirect url-redirect])
     ==
   ==
 ::
 ++  parse-request
   |=  req=cord
   ^-  *
-  stub
+  =/  fields=(pole [@t @t])
+    ~|  %request-parse-fail
+    (rash req yquy:de-purl:html)
+  ::
+  ?.  ?=([[%script-text txt=@t] ~] fields)
+    ~|  %request-read-fail
+    !!
+  ::  replace \r\n with \n
+  =/  text=tape  (rash txt.fields (star ;~(pose (cold '\0a' (jest '\0d\0a')) next)))
+  ~&  text
+  ~&  (scan text source-rule)
+  ::  stub
+  ::
+  **
+::
+++  source-rule
+  %+  cook  |=([(unit @dr) strand-source] +<)
+  ;~  plug
+    %+  cook
+      |=  u=(unit dime)
+      ^-  (unit @dr)
+      ?~  u  ~
+      ?.  ?=(%dr p.u.u)  ~
+      `q.u.u
+    %-  punt
+    ;~(pfix (jest '##  ~') ;~(sfix crub:so gap))
+  ::
+    %+  cook
+      |=  l=(unit (list (pair term path)))
+      ^-  (list (pair term path))
+      ?~  l  ~
+      u.l
+    %-  punt
+    ;~(pfix (jest '##  ') ;~(sfix deps-rule gap))
+  ::
+  %+  cook  crip
+  (star next)
+  ==
+::
+++  deps-rule  (more (jest ', ') ;~(plug sym ;~(pfix tis fas (more fas sym))))
+::
+++  handle-request
+  |=  arg=*
+  ^-  (quip card _state)
+  `state
 ::
 ++  form
-  |=  args=*
+  :: |=  args=*
   ^-  manx
   ;html
     ;head
@@ -280,10 +326,28 @@
         |=  [k=strand-id v=*]
         ;option: {(make-tape k)}
       ==
-      ::
+    ::
       ;pre#script-box
         ;+  ;/  "Script will appear here..."
       ==
+    ::
+      ;form(method "POST")
+        ;textarea#script-text
+          =name  "script-text"
+          =cols  "80"
+          =rows  "20"
+          =placeholder  """
+                        ##  ~h1                   ::  schedule, optional @da
+                        ##  name=/desk/path/hoon  ::  comma-separated imports, optional
+                        ::
+                        ...
+                        """
+          ;
+        ==
+        ;br;
+        ;button(type "submit"): Send
+      ==
+    ::
       ;script: {js-code}
     ==
   ==
@@ -328,7 +392,8 @@
     const textBox = document.getElementById('script-box');
     const scriptKey = select.value;
 
-    textBox.textContent = scriptKey ? sources[scriptKey] : '';
+    textBox.textContent = scriptKey ? sources[scriptKey]
+                                    : 'Script will appear here...';
   }
   """
 ::
@@ -338,12 +403,12 @@
   body {
     font-family: monospace;
     background: #fafafa;
-    height: 100vh;
     display: flex;
     flex-direction: column;
-    justify-content: center;
     align-items: center;
+    margin: 20px;
     margin: 0;
+    margin-top: 40px;
   }
   select {
     padding: 8px 12px;
@@ -369,6 +434,20 @@
   h2 {
     margin-bottom: 10px;
     text-align: center;
+  }
+  textarea {
+    font-family: monospace;
+    font-size: 1.5em;
+    width: 80ch;
+    height: 20em;
+    resize: none;
+    overflow: auto;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background: #f7f7f7;
+    padding: 10px;
+    display: block;
+    margin: 10px auto;
   }
   '''
 ::

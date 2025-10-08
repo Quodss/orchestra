@@ -1,10 +1,6 @@
 |%
 +$  strand-id  path
 +$  strand-source  [deps=(list (pair term path)) txt=cord]
-++  range
-  |$  [m]
-  (pair m m)
-::
 +$  strand-params
   $:  run-every=(unit @dr)
   ==  
