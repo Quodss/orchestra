@@ -10,9 +10,10 @@
   $%  state-0
   ==
 ::
++$  strand-state  [src=strand-source params=strand-params is-running=?]
 +$  state-0
   $:  %0
-      strands=(map strand-id [src=strand-source params=strand-params])
+      strands=(map strand-id strand-state)
       products=(map strand-id vase)
   ==
 +$  card  card:agent:gall
@@ -31,6 +32,11 @@
   =/  txt=tape  (trip (spat id))
   =.  txt  (turn txt |=(=char ?:(=('/' char) '-' char)))
   (rap 3 'orchestra' txt)
+::
+++  set-running-flag
+  |=  [strands=(map strand-id strand-state) id=strand-id =flag]
+  ^+  strands
+  (~(jab by strands) id |=(strand-state +<(is-running flag)))
 --
 ::
 %+  verb  &
@@ -53,16 +59,21 @@
   ++  on-load
     |=  old=vase
     ^-  [(list card) _this]
+    =/  state  !<(state-0 old)
     ::  stop all old threads on load
     ::
-    =/  state  !<(state-0 old)
-    =/  cards-stop
-      %-  ~(rep by strands.state)
-      |=  [[k=strand-id *] acc=(list card)]
-      ^+  acc
-      [(emit-stop:hc k) acc]
+    =^  cards-stop  strands.state
+      |-  ^-  (quip card _strands.state)
+      ?~  strands.state  [~ ~]
+      =/  n-cards=(list card)
+        ?.  is-running.q.n.strands.state  ~
+        ~[(emit-stop:hc p.n.strands.state)]
+      ::
+      =^  l-cards  l.strands.state  $(strands.state l.strands.state)
+      =^  r-cards  r.strands.state  $(strands.state r.strands.state)
+      [(zing n-cards l-cards r-cards ~) strands.state(is-running.q.n |)]
     ::
-    [cards-stop this(state state(strands ~))]
+    [cards-stop this]
   ::
   ++  on-poke
     |=  [=mark =vase]
@@ -106,21 +117,48 @@
         [%build-strand *]
       =*  id  t.wire
       ?>  ?=([%khan %arow *] sign-arvo)
+      ?~  strand=(~(get by strands.state) id)  `this
       ?:  ?=(%| -.p.sign-arvo)
         ~&  mote.p.p.sign-arvo
         %-  (slog tang.p.p.sign-arvo)
-        `this(strands.state (~(del by strands.state) id))
-      ?.  (~(has by strands.state) id)  `this
+        `this(strands.state (set-running-flag strands.state id |))
       =+  !<(res=(each vase tang) q.p.p.sign-arvo)
       ?:  ?=(%| -.res)
         %-  (slog p.res)
-        `this(strands.state (~(del by strands.state) id))
-      :_  this
+        `this(strands.state (set-running-flag strands.state id |))
       =/  tid  (make-tid id)
       =/  args=inline-args:spider  [~ `tid bek:hc !<(shed:khan p.res)]
-      :~  (watch-spider:hc run-watch+id /thread-result/[tid])
-          (poke-spider:hc run-poke+id spider-inline+!>(args))
-      ==
+      =/  cards
+        :~  (watch-spider:hc run-watch+id /thread-result/[tid])
+            (poke-spider:hc run-poke+id spider-inline+!>(args))
+        ==
+      ::
+      =/  params  params.u.strand
+      =^  cards  this
+        ?~  run-every.params  [cards this]
+        =/  wait-for=@dr  u.run-every.params
+        :_  this
+        :_  cards
+        [%pass timer+id %arvo %b %wait (add now.bowl wait-for)]
+      ::
+      [cards this]
+    ::
+        [%timer *]
+      =*  id  t.wire
+      ?>  ?=([%behn %wake *] sign-arvo)
+      ?~  strand=(~(get by strands.state) id)  `this
+      =-  ?~  error.sign-arvo.+  -  ((slog u.error.sign-arvo):+ -)
+      =/  cards=(list card)
+        ?:  is-running.u.strand
+          ?~  run-every.params.u.strand  ~
+          =/  wait-for=@dr  u.run-every.params.u.strand
+          :_  ~
+          [%pass timer+id %arvo %b %wait (add now.bowl wait-for)]
+        =/  =action  [%run id]
+        :_  ~
+        (poke-self /restart orchestra-action+!>(action))
+      ::
+      [cards this]
     ==
   ::
   ++  on-agent
@@ -140,7 +178,7 @@
           `this
         ::
             %thread-done
-          =.  strands.state   (~(del by strands.state) id)
+          =.  strands.state   (set-running-flag strands.state id |)
           =.  products.state  (~(put by products.state) id q.cage.sign)
           `this
         ==
@@ -166,7 +204,7 @@
       ~&  >>  %orchestra-id-already-present
       `state
     :-  ~[(emit-run id.act src.act)]
-    state(strands (~(put by strands.state) +.act))
+    state(strands (~(put by strands.state) [id [src params &]]:act))
   ::
       %del
     =.  products.state  (~(del by products.state) id.act)
@@ -181,12 +219,18 @@
   ::
       %wipe
     `state(products ~)
+  ::
+      %run
+    ?~  rand=(~(get by strands.state) id.act)
+      ~&  >>  %orchestra-id-not-present
+      `state
+    :-  ~[(emit-run id.act src.u.rand)]
+    state(strands (set-running-flag strands.state id.act &))
   ==
 ::
 ++  handle-http
   |=  [eyre-id=@ta =inbound-request:eyre]
   ^-  (quip card _state)
-  ~&  %handle-http
   =/  ,request-line:server
     (parse-request-line:server url.request.inbound-request)
   ::
@@ -237,10 +281,8 @@
         ;option: {(make-tape k)}
       ==
       ::
-      ;textarea#script-box
-        =readonly     "readonly"
-        =placeholder  "Script will appear here..."
-        ;+  ;/  ""
+      ;pre#script-box
+        ;+  ;/  "Script will appear here..."
       ==
       ;script: {js-code}
     ==
@@ -258,13 +300,16 @@
     """
   ::
   %+  turn  ~(tap by strands.state)
-  |=  [k=strand-id v=[src=strand-source params=strand-params]]
+  |=  [k=strand-id v=[src=strand-source params=strand-params *]]
   ::  key and displayed text
   ::
   ^-  [tape tape]
   :-  (make-tape k)
-  %+  weld  ":#  {(render-deps deps.src.v)}\0a::\0a"
-  (trip txt.src.v)
+  """
+  ##  {(render-deps deps.src.v)}
+  ::
+  {(trip txt.src.v)}
+  """
 ::
 ++  render-deps
   |=  deps=(list (pair term path))
@@ -283,7 +328,7 @@
     const textBox = document.getElementById('script-box');
     const scriptKey = select.value;
 
-    textBox.value = scriptKey ? sources[scriptKey] : '';
+    textBox.textContent = scriptKey ? sources[scriptKey] : '';
   }
   """
 ::
@@ -308,17 +353,18 @@
     border: 1px solid #ccc;
     background-color: white;
   }
-  textarea {
-    width: 80ch;
-    height: 25em;
+  pre {
+    width: 80ch
     font-family: monospace;
     font-size: 1.5em;
-    white-space: pre;
     background: #f7f7f7;
     border: 1px solid #ccc;
     border-radius: 6px;
     padding: 10px;
-    resize: vertical;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow: visible;
+    margin: 0;      
   }
   h2 {
     margin-bottom: 10px;
@@ -349,7 +395,6 @@
       =*  dep  i.deps.src
       ;<  vax=(unit vase)  bind:m
         =/  bek=beak  [our.bowl -.q.dep da+now.bowl]
-        ~&  bek
         (build-file:sio bek +.q.dep)
       ::
       ?~  vax
@@ -395,4 +440,9 @@
   |=  [=path =shed:khan]
   ^-  card
   [%pass path %arvo %k %lard %base shed]
+::
+++  poke-self
+  |=  [=wire =cage]
+  ^-  card
+  [%pass wire %agent [our.bowl name-term] %poke cage]
 --
