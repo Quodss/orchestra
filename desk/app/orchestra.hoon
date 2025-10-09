@@ -2,9 +2,9 @@
 /+  dbug, default-agent, verb, server, schooner
 /+  sio=strandio
 =*  stub  ~|(%stub !!)
-=*  name-term     %orchestra
-=*  name-mold     $orchestra
-=/  url-redirect  (cat 3 '/apps/' name-term)
+=*  name-term  %orchestra
+=*  name-mold  $orchestra
+=/  our-url    (cat 3 '/apps/' name-term)
 |%
 +$  versioned-state
   $%  state-0
@@ -12,9 +12,10 @@
 ::
 +$  strand-state  [src=strand-source params=strand-params is-running=?]
 +$  state-0
-  $:  %0
+  $:  version=%0
+      suspend-counter=@
       strands=(map strand-id strand-state)
-      products=(map strand-id vase)
+      products=(map strand-id (each vase tang))
   ==
 +$  card  card:agent:gall
 +$  sign  sign:agent:gall
@@ -26,13 +27,6 @@
   ^-  tape
   (trip (spat id))
 ::
-++  make-tid
-  |=  id=strand-id
-  ^-  tid:spider
-  =/  txt=tape  (trip (spat id))
-  =.  txt  (turn txt |=(=char ?:(=('/' char) '-' char)))
-  (rap 3 'orchestra' txt)
-::
 ++  set-running-flag
   |=  [strands=(map strand-id strand-state) id=strand-id =flag]
   ^+  strands
@@ -41,8 +35,7 @@
 ::
 %+  verb  &
 %-  agent:dbug
-=|  state-0
-=*  state  -
+=|  state=state-0
 =*  strand  strand:spider
 ^-  agent:gall
 =<
@@ -59,7 +52,8 @@
   ++  on-load
     |=  old=vase
     ^-  [(list card) _this]
-    =/  state  !<(state-0 old)
+    =/  ver-state  !<(versioned-state old)
+    =.  state  ver-state
     ::  stop all old threads on load
     ::
     =^  cards-stop  strands.state
@@ -73,7 +67,7 @@
       =^  r-cards  r.strands.state  $(strands.state r.strands.state)
       [(zing n-cards l-cards r-cards ~) strands.state(is-running.q.n |)]
     ::
-    [cards-stop this]
+    [cards-stop this(suspend-counter.state +(suspend-counter.state))]
   ::
   ++  on-poke
     |=  [=mark =vase]
@@ -94,8 +88,9 @@
     |=  path=(pole knot)
     ^-  (unit (unit cage))
     ?+    path  (on-peek:def path)
-      [%x %strands ~]   [~ ~ [%noun !>(strands.state)]]
-      [%x %products ~]  [~ ~ [%noun !>(products.state)]]
+      [%x %strands ~]          [~ ~ [%noun !>(strands.state)]]
+      [%x %products ~]         [~ ~ [%noun !>(products.state)]]
+      [%x %suspend-counter ~]  [~ ~ [%noun !>(suspend-counter.state)]]
     ==
   ::
   ++  on-watch
@@ -119,12 +114,11 @@
       ?>  ?=([%khan %arow *] sign-arvo)
       ?~  strand=(~(get by strands.state) id)  `this
       ?:  ?=(%| -.p.sign-arvo)
-        ~&  mote.p.p.sign-arvo
-        %-  (slog tang.p.p.sign-arvo)
+        =.  products.state  (~(put by products.state) id |+tang.p.p.sign-arvo)
         `this(strands.state (set-running-flag strands.state id |))
       =+  !<(res=(each vase tang) q.p.p.sign-arvo)
       ?:  ?=(%| -.res)
-        %-  (slog p.res)
+        =.  products.state  (~(put by products.state) id |+p.res)
         `this(strands.state (set-running-flag strands.state id |))
       =/  tid  (make-tid id)
       =/  args=inline-args:spider  [~ `tid bek:hc !<(shed:khan p.res)]
@@ -139,13 +133,16 @@
         =/  wait-for=@dr  u.run-every.params
         :_  this
         :_  cards
-        [%pass timer+id %arvo %b %wait (add now.bowl wait-for)]
+        =/  wir  [%timer (scot %ud suspend-counter.state) id]
+        [%pass wir %arvo %b %wait (add now.bowl wait-for)]
       ::
       [cards this]
     ::
-        [%timer *]
-      =*  id  t.wire
+        [%timer @ta *]
+      =/  counter  (slav %ud i.t.wire)
+      =*  id  t.t.wire
       ?>  ?=([%behn %wake *] sign-arvo)
+      ?.  =(counter suspend-counter.state)  `this
       ?~  strand=(~(get by strands.state) id)  `this
       =-  ?~  error.sign-arvo.+  -  ((slog u.error.sign-arvo):+ -)
       =/  cards=(list card)
@@ -153,7 +150,7 @@
           ?~  run-every.params.u.strand  ~
           =/  wait-for=@dr  u.run-every.params.u.strand
           :_  ~
-          [%pass timer+id %arvo %b %wait (add now.bowl wait-for)]
+          [%pass wire %arvo %b %wait (add now.bowl wait-for)]
         =/  =action  [%run id]
         :_  ~
         (poke-self /restart orchestra-action+!>(action))
@@ -170,16 +167,15 @@
           %fact
         =*  id  t.wire
         ?.  (~(has by strands.state) id)  `this
+        =.  strands.state  (set-running-flag strands.state id |)
         ?+    p.cage.sign  (on-agent:def wire sign)
             %thread-fail
           =+  !<(res=(pair term tang) q.cage.sign)
-          ~&  p.res
-          %-  (slog q.res)
+          =.  products.state  (~(put by products.state) id |+q.res)
           `this
         ::
             %thread-done
-          =.  strands.state   (set-running-flag strands.state id |)
-          =.  products.state  (~(put by products.state) id q.cage.sign)
+          =.  products.state  (~(put by products.state) id &+q.cage.sign)
           `this
         ==
       ==
@@ -194,7 +190,33 @@
 +*  this  .
     def   ~(. (default-agent this %|) bowl)
 ::
+::  %black:  missing
+::  %yellow: running
+::  %gray:   not running, no product
+::  %red:    not running, error
+::  %green:  not running, returned product
+::
+++  status
+  |=  id=strand-id
+  ^-  ?(%green %gray %red %yellow %black)
+  ?~  rand=(~(get by strands.state) id)   %black
+  ?:  is-running.u.rand                   %yellow
+  ?~  pro=(~(get by products.state) id)   %gray
+  ?:  ?=(%| -.u.pro)                      %red
+  %green
+::
 ++  bek  [our.bowl %base da+now.bowl]
+++  make-tid
+  |=  id=strand-id
+  ^-  tid:spider
+  =/  txt=tape  (trip (spat id))
+  =.  txt  (turn txt |=(=char ?:(=('/' char) '-' char)))
+  %:  rap  3
+    'orchestra-'  (scot %ud version.state)
+    '-'  (scot %ud suspend-counter.state)
+    txt
+  ==
+::
 ++  take-action
   |=  act=action
   ^-  (quip card _state)
@@ -228,6 +250,16 @@
     state(strands (set-running-flag strands.state id.act &))
   ==
 ::
+++  render-tang
+  |=  =tang
+  ^-  tape
+  %-  zing
+  ^-  (list tape)
+  %-  zing
+  %+  join  `(list tape)`~["\0a"]
+  ^-  (list (list tape))
+  (turn tang (cury wash 0 80))
+::
 ++  handle-http
   |=  [eyre-id=@ta =inbound-request:eyre]
   ^-  (quip card _state)
@@ -246,68 +278,188 @@
       ?.  authenticated.inbound-request
         :_  state
         %-  send
-        [302 ~ [%login-redirect url-redirect]]
+        [302 ~ [%login-redirect our-url]]
       ?~  body.request.inbound-request
-        [(send [200 ~ manx+form]) state]
-      =/  args=*  (parse-request q.u.body.request.inbound-request)
-      =^  cards  state  (handle-request args)
+        [(send [200 ~ manx+(form ~)]) state]
+      =/  args  (parse-request q.u.body.request.inbound-request)
+      ?:  ?=(%| -.args)
+        [(send [200 ~ manx+(form [[%parse (render-tang p.args)] ~ ~])]) state]
+      =^  cards  state  (handle-request p.args)
       :_  state
       %+  weld  cards
-      (send 302 ~ [%redirect url-redirect])
+      (send 302 ~ [%redirect our-url])
+    ::
+        [%apps name-mold %update ~]
+      ?.  authenticated.inbound-request  `state
+      ?~  body.request.inbound-request   [(send 302 ~ [%redirect our-url]) state]
+      =/  args  (parse-request-update q.u.body.request.inbound-request)
+      ?:  ?=(%| -.args)
+        =/  m  [[%parse-update (render-tang p.args)] ~ ~]
+        [(send [200 ~ manx+(form m)]) state]
+      =^  [cards=(list card) updates=(map @tas tape)]  state
+        (handle-update p.args)
+      ::
+      ?:  =(~ cards)  [(send [200 ~ manx+(form updates)]) state]
+      :_  state
+      %+  weld  cards
+      (send 302 ~ [%redirect our-url])
     ==
+  ==
+::
+++  less-cr-rule
+  %-  star
+  ;~  pose
+    (cold '\0a' (jest '\0d\0a'))
+    next
+  ==
+::
+++  parse-request-update
+  |=  req=cord
+  ^-  (each (unit [strand-id @t (unit @dr)]) tang)
+  =-  ~&(- -)
+  =/  fields=(map @t @t)
+    %-  malt
+    ~|  %request-parse-fail
+    (rash req yquy:de-purl:html)
+  ::
+  =/  [name=@t action=@t time=@t]
+    ~|  [%request-read-fail fields]
+    :+  (~(got by fields) %choose-thread)
+      (~(got by fields) %action)
+    (~(got by fields) %schedule-time)
+  ::
+  ?:  =('' name)  &+~
+  =/  id  (rash name stap)
+  ?:  =('' time)  &+`[id action ~]
+  ?~  time=(rush time dr-rule)  |+~['invalid @dr syntax']
+  &+`[id action time]
+::
+++  handle-update
+  |=  arg=(unit [id=strand-id web-action=@t time=(unit @dr)])
+  ^-  [[(list card) (map @tas tape)] _state]
+  ?~  arg  [[~ ~] state]
+  =*  id  id.u.arg
+  =/  web-action  web-action.u.arg
+  =*  time  time.u.arg
+  ?+    web-action  !!
+      %update-schedule
+    ::  no page updates, one card
+    ::
+    :_  state  :_  ~  :_  ~
+    =/  =action  [%upd id time]
+    (poke-self /update orchestra-action+!>(action))
+  ::
+      %show-result
+    :_  state
+    :-  ~
+    ?~  pro=(~(get by products.state) id)  ~
+    ^-  (map @tas tape)
+    :_  [~ ~]
+    :-  %product
+    ^-  tape
+    ?:  ?=(%| -.u.pro)
+      %+  weld  "Error:\0a"
+      (render-tang p.u.pro)
+    %+  weld  "Success:\0a"
+    ^-  tape
+    (zing (join "\0a" (wash 0^80 (cain p.u.pro))))
+  ::
+      %delete
+    :_  state  :_  ~  :_  ~
+    =/  =action  [%del id]
+    (poke-self /update orchestra-action+!>(action))
   ==
 ::
 ++  parse-request
   |=  req=cord
-  ^-  *
-  =/  fields=(pole [@t @t])
+  ^-  (each (trel strand-id (unit @dr) strand-source) tang)
+  =/  fields=(map @t @t)
+    %-  malt
     ~|  %request-parse-fail
     (rash req yquy:de-purl:html)
   ::
-  ?.  ?=([[%script-text txt=@t] ~] fields)
+  =/  [name=@t txt=@t]
     ~|  %request-read-fail
-    !!
+    :-  (~(got by fields) %script-name)
+    (~(got by fields) %script-text)
+  ::
+  ?~  id=(rush name stap)  |+~['invalid name, expected path']
+  ?~  u.id  |+~['empty path not permitted']
   ::  replace \r\n with \n
-  =/  text=tape  (rash txt.fields (star ;~(pose (cold '\0a' (jest '\0d\0a')) next)))
-  ~&  text
-  ~&  (scan text source-rule)
-  ::  stub
   ::
-  **
+  =/  text=tape  (rash txt less-cr-rule)
+  =|  every=(unit @dr)
+  =|  deps=(list (pair term path))
+  =/  flags=[hax=? pat=?]  [| |]
+  |-  ^-  (each (trel strand-id (unit @dr) strand-source) tang)
+  ?:  |(?=(~ text) ?=([* ~] text))
+    &+[u.id every deps (crip text)]
+  ?.  |(=(['#' '#'] [&1 &2]:text) =(['@' '@'] [&1 &2]:text))
+    &+[u.id every deps (crip text)]
+  ?:  =('@' -.text)
+    ?:  pat.flags  |+~['duplicate schedule directive']
+    =/  [=hair res=(unit [out=@dr =nail])]  (time-rule [1 1] text)
+    ?~  res
+      |+(report-parser-fail hair (crip text))
+    $(every `out.u.res, pat.flags &, text q.nail.u.res)
+  ?:  hax.flags  |+~['duplicate import directive']
+  =/  [=hair res=(unit [out=(list (pair term path)) =nail])]
+    (deps-rule [1 1] text)
+  ::
+  ?~  res
+    |+(report-parser-fail hair (crip text))
+  $(deps out.u.res, hax.flags &, text q.nail.u.res)
 ::
-++  source-rule
-  %+  cook  |=([(unit @dr) strand-source] +<)
-  ;~  plug
-    %+  cook
-      |=  u=(unit dime)
+++  dr-rule
+  ;~  pfix
+    sig
+    %+  sear
+      |=  d=dime
       ^-  (unit @dr)
-      ?~  u  ~
-      ?.  ?=(%dr p.u.u)  ~
-      `q.u.u
-    %-  punt
-    ;~(pfix (jest '##  ~') ;~(sfix crub:so gap))
-  ::
-    %+  cook
-      |=  l=(unit (list (pair term path)))
-      ^-  (list (pair term path))
-      ?~  l  ~
-      u.l
-    %-  punt
-    ;~(pfix (jest '##  ') ;~(sfix deps-rule gap))
-  ::
-  %+  cook  crip
-  (star next)
+      ?.  ?=(%dr p.d)  ~
+      `q.d
+    crub:so
   ==
 ::
-++  deps-rule  (more (jest ', ') ;~(plug sym ;~(pfix tis fas (more fas sym))))
+++  time-rule
+  ;~  pfix
+    (jest '@@')
+    gap
+    ;~(sfix dr-rule gap)
+  ==
+::
+++  deps-rule
+  ;~  pfix
+    (jest '##')
+    gap
+    ;~(sfix (more (jest ', ') ;~((glue tis) sym stap)) gap)
+  ==
+::
+++  report-parser-fail
+  |=  [=hair txt=cord]
+  ^-  tang
+  =*  lyn  p.hair
+  =*  col  q.hair
+  :~  leaf+"syntax error at [{<lyn>} {<col>}] in source"
+  ::
+    =/  =wain  (to-wain:format txt)
+    ?:  (gth lyn (lent wain))
+      '<<end of file>>'
+    (snag (dec lyn) wain)
+  ::
+    leaf+(runt [(dec col) '-'] "^")
+  ==
 ::
 ++  handle-request
-  |=  arg=*
+  |=  [id=strand-id run-every=(unit @dr) src=strand-source]
   ^-  (quip card _state)
-  `state
+  :_  state
+  :_  ~
+  =/  =action  [%new id src run-every]
+  (poke-self /web-new-thread orchestra-action+!>(action))
 ::
 ++  form
-  :: |=  args=*
+  |=  updates=(map @tas tape)
   ^-  manx
   ;html
     ;head
@@ -318,32 +470,77 @@
     ==
   ::
     ;body
-      ;select#choose-thread(onchange "updateTextBox()")
+      ;select#choose-thread(name "choose-thread", onchange "updateTextBox()", form "control-form")
         ;option(value ""): --Select--
       ::
         ;*
         %+  turn  ~(tap by strands.state)
         |=  [k=strand-id v=*]
-        ;option: {(make-tape k)}
+        =/  t  (make-tape k)
+        ;option(value t): {t}
       ==
     ::
       ;pre#script-box
         ;+  ;/  "Script will appear here..."
       ==
+      ;pre#script-state
+        ;+  ;/  ""
+      ==
     ::
+      ;form#control-form(action "{(trip our-url)}/update", method "POST")
+        ;div#control-row
+          ;button#delete(name "action", type "submit", value "delete"): Delete
+          ;button#show-result(name "action", type "submit", value "show-result"): Show result
+          ;div#update-params
+            ;input#schedule-field
+              =name         "schedule-time"
+              =type         "text"
+              =placeholder  "~d1"
+              =maxlength    "7"
+              ;
+            ==
+          ::
+            ;button#update-schedule(name "action", type "submit", value "update-schedule"): Update
+          ==
+        ==
+      ==
+    ::
+    ;+  ?~  parser-fail=(~(get by updates) %parse-update)
+          ;p;
+        ;div#error-message: {u.parser-fail}
+    ::
+    ;+  ?~  product-show=(~(get by updates) %product)
+          ;p;
+        ;div#show-product: {u.product-show}
+    ::
+      ;br;  ;br;
+      ;h1: Add a new thread
       ;form(method "POST")
+        ;textarea#script-name
+          =name  "script-name"
+          =cols  "30"
+          =rows  "1"
+          =placeholder  "/thread/name"
+          ;
+        ==
+      ::
         ;textarea#script-text
           =name  "script-text"
           =cols  "80"
           =rows  "20"
           =placeholder  """
-                        ##  ~h1                   ::  schedule, optional @da
+                        @@  ~h1                   ::  schedule, optional @da
                         ##  name=/desk/path/hoon  ::  comma-separated imports, optional
                         ::
                         ...
                         """
           ;
         ==
+      ::
+        ;+  ?~  parse-script=(~(get by updates) %parse)
+              ;p;
+            ;div#error-message: {u.parse-script}
+      ::
         ;br;
         ;button(type "submit"): Send
       ==
@@ -369,6 +566,8 @@
   ::
   ^-  [tape tape]
   :-  (make-tape k)
+  =-  ?~  run-every.params.v  -
+      (weld "@@  {<u.run-every.params.v>}\0a" -)
   """
   ##  {(render-deps deps.src.v)}
   ::
@@ -383,17 +582,30 @@
   ?~  t.deps  "{(trip p.i.deps)}={(trip (spat q.i.deps))}"
   "{(trip p.i.deps)}={(trip (spat q.i.deps))}, {$(deps t.deps)}"
 ::
+++  render-states
+  ^-  tape
+  =/  ids  ~(tap in ~(key by strands.state))
+  |-  ^-  tape
+  ?~  ids  ""
+  """
+  "{(make-tape i.ids)}": `{(trip (status i.ids))}`,
+  {$(ids t.ids)}
+  """
+::
 ++  js-code
   ^-  tape
   """
   const sources = \{ {render-scripts} };
+  const states = \{ {render-states} };
   function updateTextBox() \{
     const select = document.getElementById('choose-thread');
     const textBox = document.getElementById('script-box');
+    const textState = document.getElementById('script-state');
     const scriptKey = select.value;
 
     textBox.textContent = scriptKey ? sources[scriptKey]
                                     : 'Script will appear here...';
+    textState.textContent = scriptKey ? states[scriptKey] : '';
   }
   """
 ::
@@ -420,6 +632,8 @@
   }
   pre {
     width: 80ch
+    max-width: 80ch;
+    min-width: 80ch;
     font-family: monospace;
     font-size: 1.5em;
     background: #f7f7f7;
@@ -435,7 +649,7 @@
     margin-bottom: 10px;
     text-align: center;
   }
-  textarea {
+  #script-text {
     font-family: monospace;
     font-size: 1.5em;
     width: 80ch;
@@ -448,6 +662,92 @@
     padding: 10px;
     display: block;
     margin: 10px auto;
+  }
+  #script-name {
+    width: 30ch;
+    height: 2.25em;
+    font-family: monospace;
+    font-size: 1.5em;
+    resize: none;
+    overflow: hidden;
+    padding: 5px 8px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background: #f7f7f7;
+    display: block;
+    margin: 10px auto;
+  }
+  button {
+    font-size: 0.9em;
+    padding: 10px 20px;
+    border-radius: 6px;
+    border: 1px solid #888;
+    background-color: #f0f0f0;
+    cursor: pointer;
+  }
+  button:hover {
+    background: #e0e0e0;
+  }
+  #error-message {
+    //  display: none;
+    margin-top: 5px;
+    width: 80ch;
+    background-color: #ffe6e6;
+    color: #900;
+    border: 1px solid #f5b5b5;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 1.5em;
+    font-family: monospace;
+    white-space: pre-wrap;
+  }
+  #show-product {
+    //  display: none;
+    margin-top: 5px;
+    width: 80ch;
+    background-color: #f0f0f0;
+    border: 1px solid #888;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 1.5em;
+    font-family: monospace;
+    white-space: pre-wrap;
+  }
+  #control-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 80ch;
+    margin-top: 10px;
+    gap: 10px;
+  }
+
+  #control-row button {
+    font-size: 0.9em;
+    padding: 6px 14px;
+    border: 1px solid #aaa;
+    border-radius: 6px;
+    background-color: #f0f0f0;
+    cursor: pointer;
+  }
+
+  #control-row button:hover {
+    background-color: #e0e0e0;
+  }
+
+  #update-params {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  #schedule-field {
+    width: 7ch;
+    font-family: monospace;
+    font-size: 0.9em;
+    padding: 4px 6px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
   }
   '''
 ::
@@ -484,19 +784,7 @@
     %-  pure:m
     ^-  (each vase tang)
     =/  [=hair res=(unit [=hoon =nail])]  (vest [1 1] (trip txt.src))
-    ?~  res
-      :-  %|
-      =*  lyn  p.hair
-      =*  col  q.hair
-      :~  leaf+"syntax error at [{<lyn>} {<col>}] in source"
-        ::
-          =/  =wain  (to-wain:format txt.src)
-          ?:  (gth lyn (lent wain))
-            '<<end of file>>'
-          (snag (dec lyn) wain)
-        ::
-          leaf+(runt [(dec col) '-'] "^")
-      ==
+    ?~  res  |+(report-parser-fail hair txt.src)
     ?~  pro=(mole |.((slap build hoon.u.res)))
       |+~['source build failed']
     ?.  (~(nest ut -:!>(*shed:khan)) | -.u.pro)
