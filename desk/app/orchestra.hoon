@@ -372,21 +372,6 @@
     =/  =action  [%upd id time]
     (poke-self /update orchestra-action+!>(action))
   ::
-    ::   %show-result
-    :: :_  state
-    :: :-  ~
-    :: ?~  pro=(~(get by products.state) id)  ~
-    :: ^-  (map @tas tape)
-    :: :_  [~ ~]
-    :: :-  %product
-    :: ^-  tape
-    :: ?:  ?=(%| -.u.pro)
-    ::   %+  weld  "Error:\0a"
-    ::   (render-tang p.u.pro)
-    :: %+  weld  "Success:\0a"
-    :: ^-  tape
-    :: (zing (join "\0a" (wash 0^80 (cain p.u.pro))))
-  ::
       %delete
     :_  state  :_  ~  :_  ~
     =/  =action  [%del id]
@@ -618,14 +603,11 @@
   """
   const sources = \{ {render-scripts} };
   const states = \{ {render-states} };
-  const div_product = document.getElementById('show-product');
-  const select = document.getElementById('choose-thread');
-  const textBox = document.getElementById('script-box');
-  const textState = document.getElementById('script-state');
 
-  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, m =>
-    (\{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])
-  );
+  const div_product = document.getElementById('show-product');
+  const select      = document.getElementById('choose-thread');
+  const textBox     = document.getElementById('script-box');
+  const textState   = document.getElementById('script-state');
 
   function updateTextBox() \{
     const scriptKey = select.value;
