@@ -303,6 +303,24 @@
       :_  state
       %+  weld  cards
       (send 302 ~ [%redirect our-url])
+    ::
+        [%apps name-mold %product ~]
+      ?.  authenticated.inbound-request  `state
+      ?~  body.request.inbound-request   `state
+      =/  id=(unit strand-id)
+        (parse-request-product q.u.body.request.inbound-request)
+      ::
+      =;  jon=json  [(send [200 ~ json+jon]) state]
+      ?~  id  ~
+      ?~  pro=(~(get by products.state) u.id)  ~  ::  null
+      =-  [%o ['u' s+-] ~ ~]                      ::  {u: string}
+      %-  crip
+      ?:  ?=(%| -.u.pro)
+        %+  weld  "Error:\0a"
+        (render-tang p.u.pro)
+      %+  weld  "Success:\0a"
+      ^-  tape
+      (zing (join "\0a" (wash 0^80 (cain p.u.pro))))
     ==
   ==
 ::
@@ -313,10 +331,15 @@
     next
   ==
 ::
+++  parse-request-product
+  |=  req=cord
+  ^-  (unit strand-id)
+  ?:  =('' req)  ~
+  `(rash req stap)
+::
 ++  parse-request-update
   |=  req=cord
   ^-  (each (unit [strand-id @t (unit @dr)]) tang)
-  =-  ~&(- -)
   =/  fields=(map @t @t)
     %-  malt
     ~|  %request-parse-fail
@@ -349,20 +372,20 @@
     =/  =action  [%upd id time]
     (poke-self /update orchestra-action+!>(action))
   ::
-      %show-result
-    :_  state
-    :-  ~
-    ?~  pro=(~(get by products.state) id)  ~
-    ^-  (map @tas tape)
-    :_  [~ ~]
-    :-  %product
-    ^-  tape
-    ?:  ?=(%| -.u.pro)
-      %+  weld  "Error:\0a"
-      (render-tang p.u.pro)
-    %+  weld  "Success:\0a"
-    ^-  tape
-    (zing (join "\0a" (wash 0^80 (cain p.u.pro))))
+    ::   %show-result
+    :: :_  state
+    :: :-  ~
+    :: ?~  pro=(~(get by products.state) id)  ~
+    :: ^-  (map @tas tape)
+    :: :_  [~ ~]
+    :: :-  %product
+    :: ^-  tape
+    :: ?:  ?=(%| -.u.pro)
+    ::   %+  weld  "Error:\0a"
+    ::   (render-tang p.u.pro)
+    :: %+  weld  "Success:\0a"
+    :: ^-  tape
+    :: (zing (join "\0a" (wash 0^80 (cain p.u.pro))))
   ::
       %delete
     :_  state  :_  ~  :_  ~
@@ -490,7 +513,7 @@
       ;form#control-form(action "{(trip our-url)}/update", method "POST")
         ;div#control-row
           ;button#delete(name "action", type "submit", value "delete"): Delete
-          ;button#show-result(name "action", type "submit", value "show-result"): Show result
+          ;button#show-result(name "action", type "button", onclick "showResult()"): Show result
           ;div#update-params
             ;input#schedule-field
               =name         "schedule-time"
@@ -509,9 +532,7 @@
           ;p;
         ;div#error-message: {u.parser-fail}
     ::
-    ;+  ?~  product-show=(~(get by updates) %product)
-          ;p;
-        ;div#show-product: {u.product-show}
+    ;div#show-product(hidden "");
     ::
       ;br;  ;br;
       ;h1: Add a new thread
@@ -597,21 +618,59 @@
   """
   const sources = \{ {render-scripts} };
   const states = \{ {render-states} };
+  const div_product = document.getElementById('show-product');
+  const select = document.getElementById('choose-thread');
+  const textBox = document.getElementById('script-box');
+  const textState = document.getElementById('script-state');
+
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, m =>
+    (\{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])
+  );
+
   function updateTextBox() \{
-    const select = document.getElementById('choose-thread');
-    const textBox = document.getElementById('script-box');
-    const textState = document.getElementById('script-state');
     const scriptKey = select.value;
 
     textBox.textContent = scriptKey ? sources[scriptKey]
                                     : 'Script will appear here...';
     textState.textContent = scriptKey ? states[scriptKey] : '';
   }
+  async function showResult() \{
+    const select = document.getElementById('choose-thread');
+    const key = select.value || '';
+    if (!key) \{
+      div_product.setAttribute('hidden', '');
+      div_product.textContent = '';
+      return;
+    }
+    try \{
+      const response = await fetch('{(trip our-url)}/product', \{method: 'POST', body: key});
+
+      if (!response.ok) \{
+        console.error('HTTP error:', response.status);
+      }
+      else \{
+        const data = await response.json();
+        if (null === data) \{
+          div_product.setAttribute('hidden', '');
+          div_product.textContent = '';
+          return;
+        }
+        else \{
+          div_product.textContent = data.u;
+          div_product.removeAttribute('hidden');
+        }
+      }
+
+    } catch (error) \{
+      console.error('Network error:', error);
+    }
+  }
   """
 ::
 ++  style
   ^~  %-  trip
   '''
+  [hidden] { display: none !important; }
   body {
     font-family: monospace;
     background: #fafafa;
