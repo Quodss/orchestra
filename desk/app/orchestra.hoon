@@ -1032,7 +1032,7 @@
         |+~['nest failed: not a shed']
       &+u.pro
     ::
-        %js  (pure:m &+!>(`shed:khan`(thread-builder-js txt.src)))
+        %js  ~|  %not-implemented  !!  ::  (pure:m &+!>(`shed:khan`(thread-builder-js txt.src)))
     ==
   ::
   (pure:m !>(res))
