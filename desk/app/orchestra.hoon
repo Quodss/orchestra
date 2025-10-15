@@ -544,12 +544,10 @@
       ;pre#script-box
         ;+  ;/  "Script will appear here..."
       ==
-      ;pre#script-state(hidden "")
-        ;+  ;/  ""
-      ==
     ::
       ;form#control-form(action "{(trip our-url)}/update", method "POST")
         ;div#control-row
+          ;span#status-led.status-led(data-status "", title "", data-tooltip "No status");
           ;button#delete(name "action", type "submit", value "delete"): Delete
           ;button#show-result(name "action", type "button", onclick "showResult()"): Show result
           ;div#update-params
@@ -670,24 +668,33 @@
   const sources = \{ {render-scripts} };
   const states = \{ {render-states} };
 
+  const tips = \{
+    red: 'Script failed last run',
+    green: 'Script returned sucessfully',
+    yellow: 'Script still runnning',
+    gray: 'Script not runnning',
+    black: 'Script not found',
+  };
+
   const div_product = document.getElementById('show-product');
   const select      = document.getElementById('choose-thread');
   const textBox     = document.getElementById('script-box');
-  const textState   = document.getElementById('script-state');
   const textScript  = document.getElementById('script-text');
   const select_lang = document.getElementById('language-choice');
+  const ledEl       = document.getElementById('status-led');
 
   function updateTextBox() \{
     const scriptKey = select.value;
     if (scriptKey) \{
       textBox.textContent = sources[scriptKey];
-      textState.textContent = states[scriptKey];
-      textState.removeAttribute('hidden');
+      const state = states[scriptKey];
+      ledEl.setAttribute('data-status', state);
+      ledEl.setAttribute('data-tooltip', tips[state]);
     }
     else \{
       textBox.textContent = 'Script will appear here...';
-      textState.textContent = '';
-      textState.setAttribute('hidden', '');
+      ledEl.setAttribute('data-status', 'white');
+      ledEl.setAttribute('data-tooltip', 'No status');
     }
   }
   function updatePlaceholder() \{
@@ -856,11 +863,23 @@
   }
   #upload-row {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    align-items: baseline;
+    justify-content: flex-start;
+    gap: 10px;
     width: 80ch;
     margin-top: 10px;
-    gap: 10px;
+  }
+  #script-name {
+    height: auto;
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+  #language-choice {
+    font-size: 1.0em;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    background-color: #f7f7f7;
   }
   #control-row button {
     font-size: 0.9em;
@@ -889,6 +908,43 @@
     border: 1px solid #ccc;
     border-radius: 4px;
   }
+  .status-led {
+    --led-size: 12px;
+    width: var(--led-size);
+    height: var(--led-size);
+    border-radius: 50%;
+    display: inline-block;
+    border: 1px solid #666;
+    box-shadow:
+      0 0 0 2px rgba(0,0,0,0.05) inset,
+      0 0 6px rgba(0,0,0,0.2);
+    position: relative;
+  }
+  .status-led::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 50%;
+    top: -40px;
+    transform: translateX(-50%);
+    padding: 4px 8px;
+    background: #222;
+    color: #fff;
+    font-size: 0.8em;
+    border-radius: 6px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 120ms ease;
+  }
+  .status-led:hover::after { opacity: 1; }
+
+  .status-led[data-status="green"]  { background: #23c552; box-shadow: 0 0 8px #23c552; }
+  .status-led[data-status="red"]    { background: #e03131; box-shadow: 0 0 8px #e03131; }
+  .status-led[data-status="yellow"] { background: #f2c94c; box-shadow: 0 0 8px #f2c94c; }
+  .status-led[data-status="orange"] { background: #f2994a; box-shadow: 0 0 8px #f2994a; }
+  .status-led[data-status="blue"]   { background: #2d9cdb; box-shadow: 0 0 8px #2d9cdb; }
+  .status-led[data-status="gray"],
+  .status-led[data-status="grey"]   { background: #9e9e9e; box-shadow: 0 0 8px #9e9e9e; }
   '''
 ::
 ++  emit-stop
