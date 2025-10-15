@@ -289,9 +289,6 @@
       ~&  >>  %orchestra-id-already-running
       `state
     :-  ~[(emit-run id.act src.u.rand)]
-    ::  invalidate old timers
-    ::
-    =.  strands.state  (inc-params-counter strands.state id.act)
     =.  strands.state  (set-running-flag strands.state id.act &)
     state
   ::
@@ -454,6 +451,11 @@
     (poke-self /update orchestra-action+!>(action))
   ::
       %run
+    ?~  rand=(~(get by strands.state) id)  [[~ ~] state]
+    ?:  is-running.u.rand  [[~ ~] state]
+    ::  invalidate old timers
+    ::
+    =.  strands.state  (inc-params-counter strands.state id)
     :_  state  :_  ~  :_  ~
     =/  =action  [%run id]
     (poke-self /update orchestra-action+!>(action))
