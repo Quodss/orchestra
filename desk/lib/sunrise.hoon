@@ -1,4 +1,0 @@
-/-  *sunrise
-|%
-++  do-nothing  !!
---

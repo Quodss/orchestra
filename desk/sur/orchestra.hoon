@@ -1,6 +1,10 @@
 |%
 +$  strand-id  path
-+$  strand-source  [deps=(list (pair term path)) txt=cord]
++$  strand-source
+  $%  [%hoon deps=(list (pair term path)) txt=cord]
+      [%js txt=cord]
+  ==
+::
 +$  strand-params
   $:  run-every=(unit @dr)
   ==  

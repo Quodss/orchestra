@@ -1,6 +1,7 @@
 /-  *orchestra, spider
 /+  dbug, default-agent, verb, server, schooner
 /+  sio=strandio
+/+  thread-builder-js
 =*  stub  ~|(%stub !!)
 =*  name-term  %orchestra
 =*  name-mold  $orchestra
@@ -202,8 +203,22 @@
   ?~  rand=(~(get by strands.state) id)   %black
   ?:  is-running.u.rand                   %yellow
   ?~  pro=(~(get by products.state) id)   %gray
-  ?:  ?=(%| -.u.pro)                      %red
-  %green
+  ?-    -.src.u.rand
+      %hoon
+    ?:  ?=(%| -.u.pro)  %red
+    %green
+  ::
+      %js
+    ?:  ?=(%| -.u.pro)  %red
+    =/  js-res
+      %-  mole  |.
+      !<  [%0 out=(each cord (pair cord cord))]
+      p.u.pro
+    ::
+    ?~  js-res  %red
+    ?:  ?=(%| -.out.u.js-res)  %red
+    %green
+  ==
 ::
 ++  bek  [our.bowl %base da+now.bowl]
 ++  make-tid
@@ -313,14 +328,36 @@
       =;  jon=json  [(send [200 ~ json+jon]) state]
       ?~  id  ~
       ?~  pro=(~(get by products.state) u.id)  ~  ::  null
+      =/  rand  (~(get by strands.state) u.id)
       =-  [%o ['u' s+-] ~ ~]                      ::  {u: string}
+      ?:  |(?=(~ rand) ?=(%hoon -.src.u.rand))
+        %-  crip
+        ?:  ?=(%| -.u.pro)
+          %+  weld  "Error:\0a"
+          (render-tang p.u.pro)
+        %+  weld  "Success:\0a"
+        ^-  tape
+        (zing (join "\0a" (wash 0^80 (cain p.u.pro))))
+      ::  (-.src.u.rand == %js)
+      ::
       %-  crip
       ?:  ?=(%| -.u.pro)
-        %+  weld  "Error:\0a"
+        %+  weld  "Thread error:\0a"
         (render-tang p.u.pro)
-      %+  weld  "Success:\0a"
-      ^-  tape
-      (zing (join "\0a" (wash 0^80 (cain p.u.pro))))
+      =/  js-res
+        %-  mole  |.
+        !<  [%0 out=(each cord (pair cord cord))]
+        p.u.pro
+      ::
+      ?~  js-res  "Unrecognized JS result"
+      =/  out  out.u.js-res
+      ?-    -.out
+          %&
+        "Success:\0a{(trip p.out)}"
+      ::
+          %|
+        "JS error:\0a{(trip p.p.out)}\0a{(trip q.p.out)}"
+      ==
     ==
   ==
 ::
@@ -386,37 +423,53 @@
     ~|  %request-parse-fail
     (rash req yquy:de-purl:html)
   ::
-  =/  [name=@t txt=@t]
+  =/  [name=@t txt=@t lang=@t]
     ~|  %request-read-fail
-    :-  (~(got by fields) %script-name)
-    (~(got by fields) %script-text)
+    :+  (~(got by fields) %script-name)
+      (~(got by fields) %script-text)
+    (~(got by fields) %language-choice) 
   ::
   ?~  id=(rush name stap)  |+~['invalid name, expected path']
   ?~  u.id  |+~['empty path not permitted']
   ::  replace \r\n with \n
   ::
   =/  text=tape  (rash txt less-cr-rule)
-  =|  every=(unit @dr)
-  =|  deps=(list (pair term path))
-  =/  flags=[hax=? pat=?]  [| |]
-  |-  ^-  (each (trel strand-id (unit @dr) strand-source) tang)
-  ?:  |(?=(~ text) ?=([* ~] text))
-    &+[u.id every deps (crip text)]
-  ?.  |(=(['#' '#'] [&1 &2]:text) =(['@' '@'] [&1 &2]:text))
-    &+[u.id every deps (crip text)]
-  ?:  =('@' -.text)
-    ?:  pat.flags  |+~['duplicate schedule directive']
+  ?+    lang  ~|  %unrecognized-language  !!
+      %hoon
+    =|  every=(unit @dr)
+    =|  deps=(list (pair term path))
+    =/  flags=[hax=? pat=?]  [| |]
+    |-  ^-  (each (trel strand-id (unit @dr) strand-source) tang)
+    ?:  |(?=(~ text) ?=([* ~] text))
+      &+[u.id every %hoon deps (crip text)]
+    ?.  |(=(['#' '#'] [&1 &2]:text) =(['@' '@'] [&1 &2]:text))
+      &+[u.id every %hoon deps (crip text)]
+    ?:  =('@' -.text)
+      ?:  pat.flags  |+~['duplicate schedule directive']
+      =/  [=hair res=(unit [out=@dr =nail])]  (time-rule [1 1] text)
+      ?~  res
+        |+(report-parser-fail hair (crip text))
+      $(every `out.u.res, pat.flags &, text q.nail.u.res)
+    ?:  hax.flags  |+~['duplicate import directive']
+    =/  [=hair res=(unit [out=(list (pair term path)) =nail])]
+      (deps-rule [1 1] text)
+    ::
+    ?~  res
+      |+(report-parser-fail hair (crip text))
+    $(deps out.u.res, hax.flags &, text q.nail.u.res)
+  ::
+      %js
+    =|  every=(unit @dr)
+    |-  ^-  (each (trel strand-id (unit @dr) strand-source) tang)
+    ?:  |(?=(~ text) ?=([* ~] text))
+      &+[u.id every %js (crip text)]
+    ?.  =(['@' '@'] [&1 &2]:text)
+      &+[u.id every %js (crip text)]
     =/  [=hair res=(unit [out=@dr =nail])]  (time-rule [1 1] text)
     ?~  res
       |+(report-parser-fail hair (crip text))
-    $(every `out.u.res, pat.flags &, text q.nail.u.res)
-  ?:  hax.flags  |+~['duplicate import directive']
-  =/  [=hair res=(unit [out=(list (pair term path)) =nail])]
-    (deps-rule [1 1] text)
-  ::
-  ?~  res
-    |+(report-parser-fail hair (crip text))
-  $(deps out.u.res, hax.flags &, text q.nail.u.res)
+    $(every `out.u.res, text q.nail.u.res)
+  ==
 ::
 ++  dr-rule
   ;~  pfix
@@ -491,7 +544,7 @@
       ;pre#script-box
         ;+  ;/  "Script will appear here..."
       ==
-      ;pre#script-state
+      ;pre#script-state(hidden "")
         ;+  ;/  ""
       ==
     ::
@@ -522,12 +575,19 @@
       ;br;  ;br;
       ;h1: Add a new thread
       ;form(method "POST")
-        ;textarea#script-name
-          =name  "script-name"
-          =cols  "30"
-          =rows  "1"
-          =placeholder  "/thread/name"
-          ;
+        ;div#upload-row
+          ;textarea#script-name
+            =name  "script-name"
+            =cols  "30"
+            =rows  "1"
+            =placeholder  "/thread/name"
+            ;
+          ==
+        ::
+          ;select#language-choice(name "language-choice", onchange "updatePlaceholder()")
+            ;option(value "hoon"): Hoon
+            ;option(value "js"): JavaScript
+          ==
         ==
       ::
         ;textarea#script-text
@@ -574,11 +634,17 @@
   :-  (make-tape k)
   =-  ?~  run-every.params.v  -
       (weld "@@  {<u.run-every.params.v>}\0a" -)
-  """
-  ##  {(render-deps deps.src.v)}
+  ?-    -.src.v
+      %hoon
+    """
+    ##  {(render-deps deps.src.v)}
+    ::
+    {(trip txt.src.v)}
+    """
   ::
-  {(trip txt.src.v)}
-  """
+      %js
+    (trip txt.src.v)
+  ==
 ::
 ++  render-deps
   |=  deps=(list (pair term path))
@@ -608,13 +674,39 @@
   const select      = document.getElementById('choose-thread');
   const textBox     = document.getElementById('script-box');
   const textState   = document.getElementById('script-state');
+  const textScript  = document.getElementById('script-text');
+  const select_lang = document.getElementById('language-choice');
 
   function updateTextBox() \{
     const scriptKey = select.value;
-
-    textBox.textContent = scriptKey ? sources[scriptKey]
-                                    : 'Script will appear here...';
-    textState.textContent = scriptKey ? states[scriptKey] : '';
+    if (scriptKey) \{
+      textBox.textContent = sources[scriptKey];
+      textState.textContent = states[scriptKey];
+      textState.removeAttribute('hidden');
+    }
+    else \{
+      textBox.textContent = 'Script will appear here...';
+      textState.textContent = '';
+      textState.setAttribute('hidden', '');
+    }
+  }
+  function updatePlaceholder() \{
+    const lang = select_lang.value;
+    if ('js' == lang) \{
+      textScript.placeholder = `@@  ~h1  //  schedule, optional @da
+  const ub = require("urbit_thread");
+  module.exports = () => \{
+    console.log("Hello");
+    return "done";
+  }`;
+    }
+    else \{
+      textScript.placeholder = `@@  ~h1                   ::  schedule, optional @da
+  ##  name=/desk/path/hoon  ::  comma-separated imports, optional
+  ::
+  ...
+  `;
+    }
   }
   async function showResult() \{
     const select = document.getElementById('choose-thread');
@@ -762,7 +854,14 @@
     margin-top: 10px;
     gap: 10px;
   }
-
+  #upload-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 80ch;
+    margin-top: 10px;
+    gap: 10px;
+  }
   #control-row button {
     font-size: 0.9em;
     padding: 6px 14px;
@@ -809,28 +908,33 @@
   ;<  res=(each vase tang)  bind:m
     =/  m  (strand (each vase tang))
     ^-  form:m
-    =/  build=vase  !>(..zuse)
-    |-  ^-  form:m
-    ?^  deps.src
-      =*  dep  i.deps.src
-      ;<  vax=(unit vase)  bind:m
-        =/  bek=beak  [our.bowl -.q.dep da+now.bowl]
-        (build-file:sio bek +.q.dep)
-      ::
-      ?~  vax
-        %-  pure:m
-        |+~[leaf+"dependency build failed: desk {<-.q.dep>}, path {<+.q.dep>}"]
-      =.  p.u.vax  [%face p.dep p.u.vax]
-      $(deps.src t.deps.src, build (slop u.vax build))
-    %-  pure:m
-    ^-  (each vase tang)
-    =/  [=hair res=(unit [=hoon =nail])]  (vest [1 1] (trip txt.src))
-    ?~  res  |+(report-parser-fail hair txt.src)
-    ?~  pro=(mole |.((slap build hoon.u.res)))
-      |+~['source build failed']
-    ?.  (~(nest ut -:!>(*shed:khan)) | -.u.pro)
-      |+~['nest failed: not a shed']
-    &+u.pro
+    ?-    -.src
+        %hoon
+      =/  build=vase  !>(..zuse)
+      |-  ^-  form:m
+      ?^  deps.src
+        =*  dep  i.deps.src
+        ;<  vax=(unit vase)  bind:m
+          =/  bek=beak  [our.bowl -.q.dep da+now.bowl]
+          (build-file:sio bek +.q.dep)
+        ::
+        ?~  vax
+          %-  pure:m
+          |+~[leaf+"dependency build failed: desk {<-.q.dep>}, path {<+.q.dep>}"]
+        =.  p.u.vax  [%face p.dep p.u.vax]
+        $(deps.src t.deps.src, build (slop u.vax build))
+      %-  pure:m
+      ^-  (each vase tang)
+      =/  [=hair res=(unit [=hoon =nail])]  (vest [1 1] (trip txt.src))
+      ?~  res  |+(report-parser-fail hair txt.src)
+      ?~  pro=(mole |.((slap build hoon.u.res)))
+        |+~['source build failed']
+      ?.  (~(nest ut -:!>(*shed:khan)) | -.u.pro)
+        |+~['nest failed: not a shed']
+      &+u.pro
+    ::
+        %js  (pure:m &+!>(`shed:khan`(thread-builder-js txt.src)))
+    ==
   ::
   (pure:m !>(res))
 ::
