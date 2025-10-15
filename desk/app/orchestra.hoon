@@ -11,7 +11,13 @@
   $%  state-0
   ==
 ::
-+$  strand-state  [src=strand-source params=strand-params is-running=?]
++$  strand-state
+  $:  src=strand-source
+      params=strand-params
+      is-running=?
+      params-counter=@
+  ==
+::
 +$  state-0
   $:  version=%0
       suspend-counter=@
@@ -32,6 +38,11 @@
   |=  [strands=(map strand-id strand-state) id=strand-id =flag]
   ^+  strands
   (~(jab by strands) id |=(strand-state +<(is-running flag)))
+::
+++  inc-params-counter
+  |=  [strands=(map strand-id strand-state) id=strand-id]
+  ^+  strands
+  (~(jab by strands) id |=(strand-state +<(params-counter +(params-counter))))
 --
 ::
 %+  verb  &
@@ -134,17 +145,28 @@
         =/  wait-for=@dr  u.run-every.params
         :_  this
         :_  cards
-        =/  wir  [%timer (scot %ud suspend-counter.state) id]
+        =/  wir
+          [ %timer
+            (scot %ud suspend-counter.state)
+            (scot %ud params-counter.u.strand)
+            id
+          ]
+        ::
         [%pass wir %arvo %b %wait (add now.bowl wait-for)]
       ::
       [cards this]
     ::
-        [%timer @ta *]
-      =/  counter  (slav %ud i.t.wire)
-      =*  id  t.t.wire
+        [%timer @ta @ta *]
+      =/  suspend-counter  (slav %ud i.t.wire)
+      =/  params-counter   (slav %ud i.t.t.wire)
+      =*  id  t.t.t.wire
       ?>  ?=([%behn %wake *] sign-arvo)
-      ?.  =(counter suspend-counter.state)  `this
-      ?~  strand=(~(get by strands.state) id)  `this
+      ?.  =(suspend-counter suspend-counter.state)
+        `this
+      ?~  strand=(~(get by strands.state) id)
+        `this
+      ?.  =(params-counter params-counter.u.strand)
+        `this
       =-  ?~  error.sign-arvo.+  -  ((slog u.error.sign-arvo):+ -)
       =/  cards=(list card)
         ?:  is-running.u.strand
@@ -241,7 +263,7 @@
       ~&  >>  %orchestra-id-already-present
       `state
     :-  ~[(emit-run id.act src.act)]
-    state(strands (~(put by strands.state) [id [src params &]]:act))
+    state(strands (~(put by strands.state) [id [src params & 0]]:act))
   ::
       %del
     =.  products.state  (~(del by products.state) id.act)
@@ -252,7 +274,9 @@
     ?~  rand=(~(get by strands.state) id.act)
       ~&  >>  %orchestra-id-not-present
       `state
-    `state(strands (~(put by strands.state) id.act u.rand(params params.act)))
+    =.  params.u.rand  params.act
+    =.  params-counter.u.rand  +(params-counter.u.rand)
+    `state(strands (~(put by strands.state) id.act u.rand))
   ::
       %wipe
     `state(products ~)
@@ -261,8 +285,18 @@
     ?~  rand=(~(get by strands.state) id.act)
       ~&  >>  %orchestra-id-not-present
       `state
+    ?:  is-running.u.rand
+      ~&  >>  %orchestra-id-already-running
+      `state
     :-  ~[(emit-run id.act src.u.rand)]
-    state(strands (set-running-flag strands.state id.act &))
+    ::  invalidate old timers
+    ::
+    =.  strands.state  (inc-params-counter strands.state id.act)
+    =.  strands.state  (set-running-flag strands.state id.act &)
+    state
+  ::
+      %clear
+    `state(products (~(del by products.state) id.act))
   ==
 ::
 ++  render-tang
@@ -413,6 +447,16 @@
     :_  state  :_  ~  :_  ~
     =/  =action  [%del id]
     (poke-self /update orchestra-action+!>(action))
+  ::
+      %clear-product
+    :_  state  :_  ~  :_  ~
+    =/  =action  [%clear id]
+    (poke-self /update orchestra-action+!>(action))
+  ::
+      %run
+    :_  state  :_  ~  :_  ~
+    =/  =action  [%run id]
+    (poke-self /update orchestra-action+!>(action))
   ==
 ::
 ++  parse-request
@@ -549,7 +593,7 @@
         ;div#control-row
           ;span#status-led.status-led(data-status "", title "", data-tooltip "No status");
           ;button#delete(name "action", type "submit", value "delete"): Delete
-          ;button#show-result(name "action", type "button", onclick "showResult()"): Show result
+          ;button#show-result(name "action", type "button", onclick "showResult()"): Load result
           ;div#update-params
             ;input#schedule-field
               =name         "schedule-time"
@@ -561,6 +605,8 @@
           ::
             ;button#update-schedule(name "action", type "submit", value "update-schedule"): Update
           ==
+          ;button#update-schedule(name "action", type "submit", value "clear-product"): Clear product
+          ;button#update-schedule(name "action", type "submit", value "run"): Run
         ==
       ==
     ::
@@ -701,7 +747,7 @@
     const lang = select_lang.value;
     if ('js' == lang) \{
       textScript.placeholder = `@@  ~h1  //  schedule, optional @da
-  const ub = require("urbit_thread");
+  const urbit = require("urbit_thread");
   module.exports = () => \{
     console.log("Hello");
     return "done";
@@ -857,7 +903,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    width: 80ch;
+    width: 120ch;
     margin-top: 10px;
     gap: 10px;
   }
@@ -941,10 +987,7 @@
   .status-led[data-status="green"]  { background: #23c552; box-shadow: 0 0 8px #23c552; }
   .status-led[data-status="red"]    { background: #e03131; box-shadow: 0 0 8px #e03131; }
   .status-led[data-status="yellow"] { background: #f2c94c; box-shadow: 0 0 8px #f2c94c; }
-  .status-led[data-status="orange"] { background: #f2994a; box-shadow: 0 0 8px #f2994a; }
-  .status-led[data-status="blue"]   { background: #2d9cdb; box-shadow: 0 0 8px #2d9cdb; }
-  .status-led[data-status="gray"],
-  .status-led[data-status="grey"]   { background: #9e9e9e; box-shadow: 0 0 8px #9e9e9e; }
+  .status-led[data-status="gray"]   { background: #9e9e9e; box-shadow: 0 0 8px #9e9e9e; }
   '''
 ::
 ++  emit-stop

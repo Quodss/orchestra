@@ -15,5 +15,6 @@
       [%upd id=strand-id params=strand-params]
       [%wipe ~]
       [%run id=strand-id]
+      [%clear id=strand-id]
   ==
 --
