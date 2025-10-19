@@ -44,7 +44,7 @@
   (~(jab by strands) id |=(strand-state +<(params-counter +(params-counter))))
 --
 ::
-%+  verb  &
+%+  verb  |
 %-  agent:dbug
 =|  state=state-0
 =*  strand  strand:spider
