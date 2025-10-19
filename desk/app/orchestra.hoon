@@ -330,7 +330,8 @@
       ?-    -.args
           %send
         ?:  ?=(%| -.p.args)
-          [(send [200 ~ manx+(form [[%parse (render-tang p.p.args)] ~ ~])]) state]
+          =/  rendered  (render-tang p.p.args)
+          [(send [200 ~ manx+(form [[%parse rendered] ~ ~])]) state]
         =^  cards  state  (handle-request p.p.args)
         :_  state
         %+  weld  cards
@@ -1028,11 +1029,12 @@
       ^-  (each vase tang)
       =/  [=hair res=(unit [=hoon =nail])]  (vest [1 1] (trip txt.src))
       ?~  res  |+(report-parser-fail hair txt.src)
-      ?~  pro=(mole |.((slap build hoon.u.res)))
-        |+~['source build failed']
-      ?.  (~(nest ut -:!>(*shed:khan)) | -.u.pro)
+      =/  pro  (mule |.((slap build hoon.u.res)))
+      ?:  ?=(%| -.pro)  pro(p ['source build failed' p.pro])
+      =/  vax=vase  p.pro
+      ?.  (~(nest ut -:!>(*shed:khan)) | -.vax)
         |+~['nest failed: not a shed']
-      &+u.pro
+      &+vax
     ::
         %js  ~|  %not-implemented  !!  ::  (pure:m &+!>(`shed:khan`(thread-builder-js txt.src)))
     ==
