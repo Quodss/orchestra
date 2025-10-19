@@ -5,6 +5,7 @@
 =*  name-term  %orchestra
 =*  name-mold  $orchestra
 =/  our-url    (cat 3 '/apps/' name-term)
+=/  seconds-mask  (mix (not 7 1 0) (not 6 1 0))
 |%
 +$  versioned-state
   $%  state-0
@@ -21,7 +22,7 @@
   $:  version=%0
       suspend-counter=@
       strands=(map strand-id strand-state)
-      products=(map strand-id (each vase tang))
+      products=(map strand-id (pair (each vase tang) time))
   ==
 +$  card  card:agent:gall
 +$  sign  sign:agent:gall
@@ -125,11 +126,13 @@
       ?>  ?=([%khan %arow *] sign-arvo)
       ?~  strand=(~(get by strands.state) id)  `this
       ?:  ?=(%| -.p.sign-arvo)
-        =.  products.state  (~(put by products.state) id |+tang.p.p.sign-arvo)
+        =.  products.state
+          (~(put by products.state) id |+tang.p.p.sign-arvo now.bowl)
+        ::
         `this(strands.state (set-running-flag strands.state id |))
       =+  !<(res=(each vase tang) q.p.p.sign-arvo)
       ?:  ?=(%| -.res)
-        =.  products.state  (~(put by products.state) id |+p.res)
+        =.  products.state  (~(put by products.state) id |+p.res now.bowl)
         `this(strands.state (set-running-flag strands.state id |))
       =/  tid  (make-tid id)
       =/  args=inline-args:spider  [~ `tid bek:hc !<(shed:khan p.res)]
@@ -166,7 +169,7 @@
         `this
       ?.  =(params-counter params-counter.u.strand)
         `this
-      =-  ?~  error.sign-arvo.+  -  ((slog u.error.sign-arvo):+ -)
+      =+  ?~(error.sign-arvo ~ ((slog u.error.sign-arvo) ~))  =>  +
       =/  cards=(list card)
         ?:  is-running.u.strand
           ?~  run-every.params.u.strand  ~
@@ -193,11 +196,13 @@
         ?+    p.cage.sign  (on-agent:def wire sign)
             %thread-fail
           =+  !<(res=(pair term tang) q.cage.sign)
-          =.  products.state  (~(put by products.state) id |+q.res)
+          =.  products.state  (~(put by products.state) id |+q.res now.bowl)
           `this
         ::
             %thread-done
-          =.  products.state  (~(put by products.state) id &+q.cage.sign)
+          =.  products.state
+            (~(put by products.state) id &+q.cage.sign now.bowl)
+          ::
           `this
         ==
       ==
@@ -226,15 +231,15 @@
   ?~  pro=(~(get by products.state) id)   %gray
   ?-    -.src.u.rand
       %hoon
-    ?:  ?=(%| -.u.pro)  %red
+    ?:  ?=(%| -.p.u.pro)  %red
     %green
   ::
       %js
-    ?:  ?=(%| -.u.pro)  %red
+    ?:  ?=(%| -.p.u.pro)  %red
     =/  js-res
       %-  mole  |.
       !<  [%0 out=(each cord (pair cord cord))]
-      p.u.pro
+      p.p.u.pro
     ::
     ?~  js-res  %red
     ?:  ?=(%| -.out.u.js-res)  %red
@@ -361,24 +366,25 @@
       ?~  pro=(~(get by products.state) u.id)  ~  ::  null
       =/  rand  (~(get by strands.state) u.id)
       =-  [%o ['u' s+-] ~ ~]                      ::  {u: string}
+      %-  crip
+      %+  weld  "{(scow %da (dis q.u.pro seconds-mask))}\0a"
+      ^-  tape
       ?:  |(?=(~ rand) ?=(%hoon -.src.u.rand))
-        %-  crip
-        ?:  ?=(%| -.u.pro)
+        ?:  ?=(%| -.p.u.pro)
           %+  weld  "Error:\0a"
-          (render-tang p.u.pro)
+          (render-tang p.p.u.pro)
         %+  weld  "Success:\0a"
         ^-  tape
-        (zing (join "\0a" (wash 0^80 (cain p.u.pro))))
+        (zing (join "\0a" (wash 0^80 (cain p.p.u.pro))))
       ::  (-.src.u.rand == %js)
       ::
-      %-  crip
-      ?:  ?=(%| -.u.pro)
+      ?:  ?=(%| -.p.u.pro)
         %+  weld  "Thread error:\0a"
-        (render-tang p.u.pro)
+        (render-tang p.p.u.pro)
       =/  js-res
         %-  mole  |.
         !<  [%0 out=(each cord (pair cord cord))]
-        p.u.pro
+        p.p.u.pro
       ::
       ?~  js-res  "Unrecognized JS result"
       =/  out  out.u.js-res
