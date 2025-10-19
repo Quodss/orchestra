@@ -1,7 +1,6 @@
 /-  *orchestra, spider
 /+  dbug, default-agent, verb, server, schooner
 /+  sio=strandio
-/+  thread-builder-js
 =*  stub  ~|(%stub !!)
 =*  name-term  %orchestra
 =*  name-mold  $orchestra
