@@ -328,27 +328,27 @@
       ?~  body.request.inbound-request
         [(send [200 ~ manx+(form ~)]) state]
       =/  args  (parse-request q.u.body.request.inbound-request)
-      ?:  ?=(%| -.args)
-        [(send [200 ~ manx+(form [[%parse (render-tang p.args)] ~ ~])]) state]
-      =^  cards  state  (handle-request p.args)
-      :_  state
-      %+  weld  cards
-      (send 302 ~ [%redirect our-url])
-    ::
-        [%apps name-mold %update ~]
-      ?.  authenticated.inbound-request  `state
-      ?~  body.request.inbound-request   [(send 302 ~ [%redirect our-url]) state]
-      =/  args  (parse-request-update q.u.body.request.inbound-request)
-      ?:  ?=(%| -.args)
-        =/  m  [[%parse-update (render-tang p.args)] ~ ~]
-        [(send [200 ~ manx+(form m)]) state]
-      =^  [cards=(list card) updates=(map @tas tape)]  state
-        (handle-update p.args)
+      ?-    -.args
+          %send
+        ?:  ?=(%| -.p.args)
+          [(send [200 ~ manx+(form [[%parse (render-tang p.p.args)] ~ ~])]) state]
+        =^  cards  state  (handle-request p.p.args)
+        :_  state
+        %+  weld  cards
+        (send 302 ~ [%redirect our-url])
       ::
-      ?:  =(~ cards)  [(send [200 ~ manx+(form updates)]) state]
-      :_  state
-      %+  weld  cards
-      (send 302 ~ [%redirect our-url])
+          %update
+        ?:  ?=(%| -.p.args)
+          =/  m  [[%parse-update (render-tang p.p.args)] ~ ~]
+          [(send [200 ~ manx+(form m)]) state]
+        =^  [cards=(list card) updates=(map @tas tape)]  state
+          (handle-update p.p.args)
+        ::
+        ?:  =(~ cards)  [(send [200 ~ manx+(form updates)]) state]
+        :_  state
+        %+  weld  cards
+        (send 302 ~ [%redirect our-url])
+      ==
     ::
         [%apps name-mold %product ~]
       ?.  authenticated.inbound-request  `state
@@ -405,26 +405,6 @@
   ?:  =('' req)  ~
   `(rash req stap)
 ::
-++  parse-request-update
-  |=  req=cord
-  ^-  (each (unit [strand-id @t (unit @dr)]) tang)
-  =/  fields=(map @t @t)
-    %-  malt
-    ~|  %request-parse-fail
-    (rash req yquy:de-purl:html)
-  ::
-  =/  [name=@t action=@t time=@t]
-    ~|  [%request-read-fail fields]
-    :+  (~(got by fields) %choose-thread)
-      (~(got by fields) %action)
-    (~(got by fields) %schedule-time)
-  ::
-  ?:  =('' name)  &+~
-  =/  id  (rash name stap)
-  ?:  =('' time)  &+`[id action ~]
-  ?~  time=(rush time dr-rule)  |+~['invalid @dr syntax']
-  &+`[id action time]
-::
 ++  handle-update
   |=  arg=(unit [id=strand-id web-action=@t time=(unit @dr)])
   ^-  [[(list card) (map @tas tape)] _state]
@@ -463,59 +443,80 @@
 ::
 ++  parse-request
   |=  req=cord
-  ^-  (each (trel strand-id (unit @dr) strand-source) tang)
+  ^-  $%  [%update p=(each (unit [strand-id @t (unit @dr)]) tang)]
+          [%send p=(each (trel strand-id (unit @dr) strand-source) tang)]
+      ==
   =/  fields=(map @t @t)
     %-  malt
     ~|  %request-parse-fail
     (rash req yquy:de-purl:html)
   ::
-  =/  [name=@t txt=@t lang=@t]
-    ~|  %request-read-fail
-    :+  (~(got by fields) %script-name)
-      (~(got by fields) %script-text)
-    (~(got by fields) %language-choice) 
-  ::
-  ?~  id=(rush name stap)  |+~['invalid name, expected path']
-  ?~  u.id  |+~['empty path not permitted']
-  ::  replace \r\n with \n
-  ::
-  =/  text=tape  (rash txt less-cr-rule)
-  ?+    lang  ~|  %unrecognized-language  !!
-      %hoon
-    =|  every=(unit @dr)
-    =|  deps=(list (pair term path))
-    =/  flags=[hax=? pat=?]  [| |]
-    |-  ^-  (each (trel strand-id (unit @dr) strand-source) tang)
-    ?:  |(?=(~ text) ?=([* ~] text))
-      &+[u.id every %hoon deps (crip text)]
-    ?.  |(=(['#' '#'] [&1 &2]:text) =(['@' '@'] [&1 &2]:text))
-      &+[u.id every %hoon deps (crip text)]
-    ?:  =('@' -.text)
-      ?:  pat.flags  |+~['duplicate schedule directive']
+  =/  action=@t  (~(got by fields) %action)
+  ?:  ?=(%send-script action)
+    :-  %send
+    ^-  (each (trel strand-id (unit @dr) strand-source) tang)
+    =/  [name=@t txt=@t lang=@t]
+      ~|  %request-read-fail
+      :+  (~(got by fields) %script-name)
+        (~(got by fields) %script-text)
+      (~(got by fields) %language-choice)
+    ::
+    ?~  id=(rush name stap)  |+~['invalid name, expected path']
+    ?~  u.id  |+~['empty path not permitted']
+    ::  replace \r\n with \n
+    ::
+    =/  text=tape  (rash txt less-cr-rule)
+    ?+    lang  ~|  %unrecognized-language  !!
+        %hoon
+      =|  every=(unit @dr)
+      =|  deps=(list (pair term path))
+      =/  flags=[hax=? pat=?]  [| |]
+      |-  ^-  (each (trel strand-id (unit @dr) strand-source) tang)
+      ?:  |(?=(~ text) ?=([* ~] text))
+        &+[u.id every %hoon deps (crip text)]
+      ?.  |(=(['#' '#'] [&1 &2]:text) =(['@' '@'] [&1 &2]:text))
+        &+[u.id every %hoon deps (crip text)]
+      ?:  =('@' -.text)
+        ?:  pat.flags  |+~['duplicate schedule directive']
+        =/  [=hair res=(unit [out=@dr =nail])]  (time-rule [1 1] text)
+        ?~  res
+          |+(report-parser-fail hair (crip text))
+        $(every `out.u.res, pat.flags &, text q.nail.u.res)
+      ?:  hax.flags  |+~['duplicate import directive']
+      =/  [=hair res=(unit [out=(list (pair term path)) =nail])]
+        (deps-rule [1 1] text)
+      ::
+      ?~  res
+        |+(report-parser-fail hair (crip text))
+      $(deps out.u.res, hax.flags &, text q.nail.u.res)
+    ::
+        %js
+      =|  every=(unit @dr)
+      |-  ^-  (each (trel strand-id (unit @dr) strand-source) tang)
+      ?:  |(?=(~ text) ?=([* ~] text))
+        &+[u.id every %js (crip text)]
+      ?.  =(['@' '@'] [&1 &2]:text)
+        &+[u.id every %js (crip text)]
       =/  [=hair res=(unit [out=@dr =nail])]  (time-rule [1 1] text)
       ?~  res
         |+(report-parser-fail hair (crip text))
-      $(every `out.u.res, pat.flags &, text q.nail.u.res)
-    ?:  hax.flags  |+~['duplicate import directive']
-    =/  [=hair res=(unit [out=(list (pair term path)) =nail])]
-      (deps-rule [1 1] text)
-    ::
-    ?~  res
-      |+(report-parser-fail hair (crip text))
-    $(deps out.u.res, hax.flags &, text q.nail.u.res)
+      $(every `out.u.res, text q.nail.u.res)
+    ==
+  ?.  ?=(?(%update-schedule %delete %clear-product %run) action)
+    ~|  %unsupported-action
+    !!
+  :-  %update
+  ^-  (each (unit [strand-id @t (unit @dr)]) tang)
+  =/  [name=@t time=@t]
+    ~|  [%request-read-fail fields]
+    :-  (~(got by fields) %choose-thread)
+    (~(got by fields) %schedule-time)
   ::
-      %js
-    =|  every=(unit @dr)
-    |-  ^-  (each (trel strand-id (unit @dr) strand-source) tang)
-    ?:  |(?=(~ text) ?=([* ~] text))
-      &+[u.id every %js (crip text)]
-    ?.  =(['@' '@'] [&1 &2]:text)
-      &+[u.id every %js (crip text)]
-    =/  [=hair res=(unit [out=@dr =nail])]  (time-rule [1 1] text)
-    ?~  res
-      |+(report-parser-fail hair (crip text))
-    $(every `out.u.res, text q.nail.u.res)
-  ==
+  ?:  =('' name)  &+~
+  =/  id  (rash name stap)
+  ?:  =('' time)  &+`[id action ~]
+  ?~  time=(rush time dr-rule)  |+~['invalid @dr syntax']
+  &+`[id action time]
 ::
 ++  dr-rule
   ;~  pfix
@@ -591,7 +592,7 @@
         ;+  ;/  "Script will appear here..."
       ==
     ::
-      ;form#control-form(action "{(trip our-url)}/update", method "POST")
+      ;form#control-form(action "{(trip our-url)}", method "POST")
         ;div#control-row
           ;span#status-led.status-led(data-status "", title "", data-tooltip "No status");
           ;button#delete(name "action", type "submit", value "delete"): Delete
@@ -654,7 +655,7 @@
             ;div#error-message: {u.parse-script}
       ::
         ;br;
-        ;button(type "submit"): Send
+        ;button(type "submit", name "action", value "send-script"): Send
       ==
     ::
       ;script: {js-code}
