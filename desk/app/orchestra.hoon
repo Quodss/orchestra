@@ -230,9 +230,14 @@
     |=  id=strand-id
     ^-  ?(%green %gray %red %yellow %black)
     ?~  rand=(~(get by strands.state) id)   %black
-    ?:  is-running.u.rand                   %yellow
-    ?~  pro=(~(get by products.state) id)   %gray
-    ?-    -.src.u.rand
+    (status-state id u.rand)
+  ::
+  ++  status-state
+    |=  [id=strand-id rand=strand-state]
+    ^-  ?(%green %gray %red %yellow)
+    ?:  is-running.rand                    %yellow
+    ?~  pro=(~(get by products.state) id)  %gray
+    ?-    -.src.rand
         %hoon
       ?:  ?=(%| -.p.u.pro)  %red
       %green
@@ -398,6 +403,15 @@
             %|
           "JS error:\0a{(trip p.p.out)}\0a{(trip q.p.out)}"
         ==
+      ::
+          [%apps name-mold %states ~]
+        ?.  authenticated.inbound-request  `state
+        =;  jon=json  [(send [200 ~ json+jon]) state]
+        :-  %o
+        %-  ~(rep by strands.state)
+        |=  [[k=strand-id v=strand-state] acc=(map @t json)]
+        ^+  acc
+        (~(put by acc) (spat k) s+(status-state k v))
       ==
     ==
   ::
@@ -724,7 +738,7 @@
     ^-  tape
     """
     const sources = \{ {render-scripts} };
-    const states = \{ {render-states} };
+    let states = \{ {render-states} };
 
     const tips = \{
       red: 'Script failed last run',
@@ -799,11 +813,25 @@
             div_product.removeAttribute('hidden');
           }
         }
-
       } catch (error) \{
         console.error('Network error:', error);
       }
     }
+    async function updateStates() \{
+      try \{
+        const response = await fetch('{(trip our-url)}/states');
+        if (!response.ok) \{
+          console.error('HTTP error:', response.status);
+        }
+        else \{
+          const data = await response.json();
+          states = data;
+        }
+      } catch (error) \{
+        console.error('Network error:', error);
+      }
+    }
+    setInterval(updateStates, 3000);
     """
   ::
   ++  style
@@ -887,7 +915,6 @@
       background: #e0e0e0;
     }
     #error-message {
-      //  display: none;
       margin-top: 5px;
       width: 80ch;
       background-color: #ffe6e6;
@@ -995,7 +1022,6 @@
       transition: opacity 120ms ease;
     }
     .status-led:hover::after { opacity: 1; }
-
     .status-led[data-status="green"]  { background: #23c552; box-shadow: 0 0 8px #23c552; }
     .status-led[data-status="red"]    { background: #e03131; box-shadow: 0 0 8px #e03131; }
     .status-led[data-status="yellow"] { background: #f2c94c; box-shadow: 0 0 8px #f2c94c; }
