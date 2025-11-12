@@ -17,6 +17,7 @@
       params=strand-params
       is-running=?
       params-counter=@
+      awaits-timer=?
   ==
 ::
 +$  state-0
@@ -36,14 +37,25 @@
   (trip (spat id))
 ::
 ++  set-running-flag
-  |=  [strands=(map strand-id strand-state) id=strand-id =flag]
-  ^+  strands
-  (~(jab by strands) id |=(strand-state +<(is-running flag)))
+  |=  =flag
+  ^-  $-(strand-state strand-state)
+  |=  strand-state
+  ^-  strand-state
+  +<(is-running flag)
 ::
-++  inc-params-counter
-  |=  [strands=(map strand-id strand-state) id=strand-id]
-  ^+  strands
-  (~(jab by strands) id |=(strand-state +<(params-counter +(params-counter))))
+++  inc-params-counter  |=(strand-state +<(params-counter +(params-counter)))
+++  set-await-flag
+  |=  =flag
+  ^-  $-(strand-state strand-state)
+  |=  strand-state
+  ^-  strand-state
+  +<(awaits-timer flag)
+::
+++  comp
+  |=  [a=$-(strand-state strand-state) b=$-(strand-state strand-state)]
+  ^-  $-(strand-state strand-state)
+  |=  strand-state
+  (a (b +<))
 --
 ::
 %+  verb  |
@@ -79,8 +91,23 @@
       =^  l-cards  l.strands.state  $(strands.state l.strands.state)
       =^  r-cards  r.strands.state  $(strands.state r.strands.state)
       [(zing n-cards l-cards r-cards ~) strands.state(is-running.q.n |)]
+    ::  invalidate old timers
     ::
-    [cards-stop this(suspend-counter.state +(suspend-counter.state))]
+    =.  suspend-counter.state  +(suspend-counter.state)
+    ::  run all threads that were waiting for a timer
+    ::
+    =^  cards-run  strands.state
+      |-  ^-  (quip card _strands.state)
+      ?~  strands.state  [~ ~]
+      =/  n-cards=(list card)
+        ?.  awaits-timer.q.n.strands.state  ~
+        ~[(emit-run:hc [p src.q]:n.strands.state)]
+      ::
+      =^  l-cards  l.strands.state  $(strands.state l.strands.state)
+      =^  r-cards  r.strands.state  $(strands.state r.strands.state)
+      [(zing n-cards l-cards r-cards ~) strands.state(awaits-timer.q.n |)]
+    ::
+    [(weld cards-stop cards-run) this]
   ::
   ++  on-poke
     |=  [=mark =vase]
@@ -130,11 +157,17 @@
         =.  products.state
           (~(put by products.state) id |+tang.p.p.sign-arvo now.bowl)
         ::
-        `this(strands.state (set-running-flag strands.state id |))
+        =.  strands.state
+          (strand-lens:hc id (comp (set-running-flag |) (set-await-flag |)))
+        ::
+        `this
       =+  !<(res=(each vase tang) q.p.p.sign-arvo)
       ?:  ?=(%| -.res)
         =.  products.state  (~(put by products.state) id |+p.res now.bowl)
-        `this(strands.state (set-running-flag strands.state id |))
+        =.  strands.state
+          (strand-lens:hc id (comp (set-running-flag |) (set-await-flag |)))
+        ::
+        `this
       =/  tid  (make-tid:hc id)
       =/  args=inline-args:spider  [~ `tid bek:hc !<(shed:khan p.res)]
       =/  cards
@@ -146,6 +179,7 @@
       =^  cards  this
         ?~  run-every.params  [cards this]
         =/  wait-for=@dr  u.run-every.params
+        =.  strands.state  (strand-lens:hc id (set-await-flag &))
         :_  this
         :_  cards
         =/  wir
@@ -171,12 +205,17 @@
       ?.  =(params-counter params-counter.u.strand)
         `this
       =+  ?~(error.sign-arvo ~ ((slog u.error.sign-arvo) ~))  =>  +
-      =/  cards=(list card)
+      =^  cards=(list card)  this
         ?:  is-running.u.strand
-          ?~  run-every.params.u.strand  ~
+          ?~  run-every.params.u.strand
+            =.  strands.state  (strand-lens:hc id (set-await-flag |))
+            `this
+          =.  strands.state  (strand-lens:hc id (set-await-flag &))
+          :_  this
           =/  wait-for=@dr  u.run-every.params.u.strand
           :_  ~
           [%pass wire %arvo %b %wait (add now.bowl wait-for)]
+        :_  this
         =/  =action  [%run id]
         :_  ~
         (poke-self:hc /restart orchestra-action+!>(action))
@@ -193,7 +232,7 @@
           %fact
         =*  id  t.wire
         ?.  (~(has by strands.state) id)  `this
-        =.  strands.state  (set-running-flag strands.state id |)
+        =.  strands.state  (strand-lens:hc id (set-running-flag |))
         ?+    p.cage.sign  (on-agent:def wire sign)
             %thread-fail
           =+  !<(res=(pair term tang) q.cage.sign)
@@ -220,22 +259,28 @@
   +*  this  .
       def   ~(. (default-agent this %|) bowl)
   ::
-  ::  %black:  missing
-  ::  %yellow: running
-  ::  %gray:   not running, no product
-  ::  %red:    not running, error
-  ::  %green:  not running, returned product
+  ++  strand-lens
+    |=  [id=strand-id gate=$-(strand-state strand-state)]
+    ^+  strands.state
+    (~(jab by strands.state) id gate)
+  ::
+  ::  %black:   missing
+  ::  %yellow:  running
+  ::  %gray:    not running, no product
+  ::  %red:     not running, error
+  ::  %green:   not running, returned product
   ::
   ++  status
     |=  id=strand-id
-    ^-  ?(%green %gray %red %yellow %black)
-    ?~  rand=(~(get by strands.state) id)   %black
+    ^-  [color=?(%green %gray %red %yellow %black) blinking=?]
+    ?~  rand=(~(get by strands.state) id)   black+|
     (status-state id u.rand)
   ::
   ++  status-state
     |=  [id=strand-id rand=strand-state]
-    ^-  ?(%green %gray %red %yellow)
-    ?:  is-running.rand                    %yellow
+    ^-  [color=?(%green %gray %red %yellow %black) blinking=?]
+    ?:  is-running.rand                    yellow+|
+    :_  awaits-timer.rand
     ?~  pro=(~(get by products.state) id)  %gray
     ?-    -.src.rand
         %hoon
@@ -275,7 +320,7 @@
         ~&  >>  %orchestra-id-already-present
         `state
       :-  ~[(emit-run id.act src.act)]
-      state(strands (~(put by strands.state) [id [src params & 0]]:act))
+      state(strands (~(put by strands.state) [id [src params & 0 |]]:act))
     ::
         %del
       =.  products.state  (~(del by products.state) id.act)
@@ -301,7 +346,10 @@
         ~&  >>  %orchestra-id-already-running
         `state
       :-  ~[(emit-run id.act src.u.rand)]
-      =.  strands.state  (set-running-flag strands.state id.act &)
+      =.  strands.state
+        =/  g=$-(strand-state strand-state)  (comp (set-running-flag &) (set-await-flag |))
+        (strand-lens id.act g)
+      ::
       state
     ::
         %clear
@@ -411,7 +459,12 @@
         %-  ~(rep by strands.state)
         |=  [[k=strand-id v=strand-state] acc=(map @t json)]
         ^+  acc
-        (~(put by acc) (spat k) s+(status-state k v))
+        =/  etat  (status-state k v)
+        =-  (~(put by acc) (spat k) -)
+        %-  pairs:enjs:format
+        :~  color+s+color.etat
+            blinking+b+blinking.etat
+        ==
       ==
     ==
   ::
@@ -458,7 +511,7 @@
       ?:  is-running.u.rand  [[~ ~] state]
       ::  invalidate old timers
       ::
-      =.  strands.state  (inc-params-counter strands.state id)
+      =.  strands.state  (strand-lens id inc-params-counter)
       :_  state  :_  ~  :_  ~
       =/  =action  [%run id]
       (poke-self /update orchestra-action+!>(action))
@@ -617,7 +670,9 @@
       ::
         ;form#control-form(action "{(trip our-url)}", method "POST")
           ;div#control-row
-            ;span#status-led.status-led(data-status "", title "", data-tooltip "No status");
+            ;span#status-led.status-led(data-status "", title "", data-tooltip "No status")
+              ;span.light;
+            ==
             ;button#delete(name "action", type "submit", value "delete"): Delete
             ;button#show-result(name "action", type "button", onclick "showResult()"): Load result
             ;div#update-params
@@ -644,7 +699,7 @@
       ::
         ;br;  ;br;
         ;h1: Add a new thread
-        ;form(method "POST")
+        ;form#upload-form(method "POST")
           ;div#upload-row
             ;textarea#script-name
               =name  "script-name"
@@ -729,8 +784,11 @@
     =/  ids  ~(tap in ~(key by strands.state))
     |-  ^-  tape
     ?~  ids  ""
+    =/  etat  (status i.ids)
     """
-    "{(make-tape i.ids)}": `{(trip (status i.ids))}`,
+    "{(make-tape i.ids)}": \{color: `{(trip color.etat)}`,
+                             blinking: {?:(blinking.etat "true" "false")}
+                            },
     {$(ids t.ids)}
     """
   ::
@@ -754,19 +812,32 @@
     const textScript  = document.getElementById('script-text');
     const select_lang = document.getElementById('language-choice');
     const ledEl       = document.getElementById('status-led');
+    const formControl = document.getElementById('control-form');
+    const formUpload  = document.getElementById('upload-form');
 
     function updateTextBox() \{
       const scriptKey = select.value;
-      if (scriptKey) \{
-        textBox.textContent = sources[scriptKey];
+      let color = 'white';
+      let is_blinking = false;
+      let tooltip = 'No status';
+      let textbox_content = 'Script will appear here...';
+      if (scriptKey && sources[scriptKey] && states[scriptKey]) \{
+        textbox_content = sources[scriptKey];
         const state = states[scriptKey];
-        ledEl.setAttribute('data-status', state);
-        ledEl.setAttribute('data-tooltip', tips[state]);
+        color = state.color;
+        is_blinking = state.blinking;
+        tooltip = tips[state.color] + (( is_blinking ) ? ", awaiting timer" : "");
+      }
+      if (textBox.textContent !== textbox_content) \{
+        textBox.textContent = textbox_content;
+      }
+      ledEl.setAttribute('data-status', color);
+      ledEl.setAttribute('data-tooltip', tooltip);
+      if ( is_blinking ) \{
+        ledEl.classList.add('blinking');
       }
       else \{
-        textBox.textContent = 'Script will appear here...';
-        ledEl.setAttribute('data-status', 'white');
-        ledEl.setAttribute('data-tooltip', 'No status');
+        ledEl.classList.remove('blinking');
       }
     }
     function updatePlaceholder() \{
@@ -826,12 +897,24 @@
         else \{
           const data = await response.json();
           states = data;
+          updateTextBox();
         }
       } catch (error) \{
         console.error('Network error:', error);
       }
     }
+    function SaveLastItem() \{
+      localStorage.setItem('lastChoice', select.value);
+    }
+    //
+    const savedValue = localStorage.getItem('lastChoice');
+    if (savedValue && sources[savedValue]) \{
+      select.value = savedValue;
+      updateTextBox();
+    }
     setInterval(updateStates, 3000);
+    formControl.addEventListener('submit', SaveLastItem);
+    formUpload.addEventListener('submit', SaveLastItem);
     """
   ::
   ++  style
@@ -1005,6 +1088,12 @@
         0 0 6px rgba(0,0,0,0.2);
       position: relative;
     }
+    .status-led .light {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      display: block;
+    }
     .status-led::after {
       content: attr(data-tooltip);
       position: absolute;
@@ -1022,10 +1111,20 @@
       transition: opacity 120ms ease;
     }
     .status-led:hover::after { opacity: 1; }
-    .status-led[data-status="green"]  { background: #23c552; box-shadow: 0 0 8px #23c552; }
-    .status-led[data-status="red"]    { background: #e03131; box-shadow: 0 0 8px #e03131; }
-    .status-led[data-status="yellow"] { background: #f2c94c; box-shadow: 0 0 8px #f2c94c; }
-    .status-led[data-status="gray"]   { background: #9e9e9e; box-shadow: 0 0 8px #9e9e9e; }
+    .status-led[data-status="green"]  .light { background: #23c552; box-shadow: 0 0 8px #23c552; }
+    .status-led[data-status="red"]    .light { background: #e03131; box-shadow: 0 0 8px #e03131; }
+    .status-led[data-status="yellow"] .light { background: #f2c94c; box-shadow: 0 0 8px #f2c94c; }
+    .status-led[data-status="gray"]   .light { background: #9e9e9e; box-shadow: 0 0 8px #9e9e9e; }
+    .status-led[data-status="black"]  .light { background: #000000; box-shadow: 0 0 8px #000000; }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .status-led.blinking .light {
+      animation: blink 3s infinite;
+    }
     '''
   ::
   ++  emit-stop
