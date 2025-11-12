@@ -69,7 +69,7 @@
     =*  tomb-chat        =>  v-sur-chat  tombstone
     =*  mo-writs         ((mp time (each writ tomb-chat)) lte)
     ::
-    =*  v-sur-groups     v7:groups-ver-sur
+    =*  v-sur-groups     v8:groups-ver-sur
     =*  flag             =>  v-sur-groups  flag
     =*  seat             =>  v-sur-groups  seat
     =*  role-groups      =>  v-sur-groups  role-id
