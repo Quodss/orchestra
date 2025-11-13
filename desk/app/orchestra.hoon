@@ -177,7 +177,9 @@
       ::
       =/  params  params.u.strand
       =^  cards  this
-        ?~  run-every.params  [cards this]
+        ?~  run-every.params
+          =.  strands.state  (strand-lens:hc id (set-await-flag |))
+          [cards this]
         =/  wait-for=@dr  u.run-every.params
         =.  strands.state  (strand-lens:hc id (set-await-flag &))
         :_  this
@@ -347,8 +349,7 @@
         `state
       :-  ~[(emit-run id.act src.u.rand)]
       =.  strands.state
-        =/  g=$-(strand-state strand-state)  (comp (set-running-flag &) (set-await-flag |))
-        (strand-lens id.act g)
+        (strand-lens id.act (comp (set-running-flag &) (set-await-flag |)))
       ::
       state
     ::
