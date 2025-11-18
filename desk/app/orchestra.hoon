@@ -335,7 +335,9 @@
         `state
       =.  params.u.rand  params.act
       =.  params-counter.u.rand  +(params-counter.u.rand)
-      `state(strands (~(put by strands.state) id.act u.rand))
+      =.  strands.state  (~(put by strands.state) id.act u.rand)
+      =.  strands.state  (strand-lens id.act (set-await-flag |))
+      `state
     ::
         %wipe
       `state(products ~)
