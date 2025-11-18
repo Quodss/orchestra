@@ -170,9 +170,21 @@
         `this
       =/  tid  (make-tid:hc id)
       =/  args=inline-args:spider  [~ `tid bek:hc !<(shed:khan p.res)]
+      =/  wir-watch
+        [ %run-watch
+          (scot %ud suspend-counter.state)
+          id
+        ]
+      ::
+      =/  wir-poke
+        [ %run-poke
+          (scot %ud suspend-counter.state)
+          id
+        ]
+      ::
       =/  cards
-        :~  (watch-spider:hc run-watch+id /thread-result/[tid])
-            (poke-spider:hc run-poke+id spider-inline+!>(args))
+        :~  (watch-spider:hc wir-watch /thread-result/[tid])
+            (poke-spider:hc wir-poke+id spider-inline+!>(args))
         ==
       ::
       =/  params  params.u.strand
@@ -229,11 +241,15 @@
     |=  [=wire =sign]
     ^-  (quip card _this)
     ?+    wire  (on-agent:def wire sign)
-        [%run-watch *]
+        [%run-watch @ta *]
       ?+    -.sign  (on-agent:def wire sign)
           %fact
-        =*  id  t.wire
-        ?.  (~(has by strands.state) id)  `this
+        =/  suspend-counter  (slav %ud i.t.wire)
+        =*  id  t.t.wire
+        ?.  =(suspend-counter suspend-counter.state)
+          `this
+        ?.  (~(has by strands.state) id)
+          `this
         =.  strands.state  (strand-lens:hc id (set-running-flag |))
         ?+    p.cage.sign  (on-agent:def wire sign)
             %thread-fail
