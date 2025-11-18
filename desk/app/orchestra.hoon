@@ -1164,7 +1164,12 @@
         ^-  (each vase tang)
         =/  [=hair res=(unit [=hoon =nail])]  (vest [1 1] (trip txt.src))
         ?~  res  |+(report-parser-fail hair txt.src)
-        =/  pro  (mule |.((slap build hoon.u.res)))
+        =/  pro
+          %-  ~(mule vi |)
+          =>  [build=build hoon=hoon.u.res ..slap]
+          |.  ~>  %memo./user
+          (slap build hoon)
+        ::
         ?:  ?=(%| -.pro)  pro(p ['source build failed' p.pro])
         =/  vax=vase  p.pro
         ?.  (~(nest ut -:!>(*shed:khan)) | -.vax)
