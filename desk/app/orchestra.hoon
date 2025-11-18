@@ -749,8 +749,7 @@
       |-  ^-  tape
       ?~  l  ""
       """
-      "{p.i.l}": `{q.i.l}
-      `,
+      "{p.i.l}": {(trip (en:json:html s+(crip q.i.l)))},
       {$(l t.l)}
       """
     ::
