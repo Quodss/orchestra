@@ -89,14 +89,7 @@
     ^-  ?
     =/  date  (yore now)
     =/  day-of-week=@ud  (dow now)
-    =/  num-of-dow=@ud
-      =/  n=@ud  1
-      |-  ^-  @ud
-      =/  past=@da  (sub now (mul n ~d7))
-      =/  then  (yore past)
-      ?.  =(m.date m.then)  n
-      $(n +(n))
-    ::
+    =/  num-of-dow=@ud  +((div d.t.date 7))
     ?&
       (range-check m.date mon.s)
     ::
