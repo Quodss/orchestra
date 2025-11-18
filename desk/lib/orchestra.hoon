@@ -3,7 +3,7 @@
 ::
 |%
 ++  cmp-events
-  |=  [a=(pair path @da) b=(pair path @da)]
+  |=  [a=(pair strand-id:sur @da) b=(pair strand-id:sur @da)]
   ^-  ?
   (lth q.a q.b)
 ::
@@ -153,18 +153,18 @@
   (poke-our:sio %orchestra orchestra-action+!>(act))
 ::
 ++  scheduler
-  |=  schedules=(list (pair path $-(@da @da)))
+  |=  schedules=(list (pair strand-id:sur $-(@da @da)))
   =/  m  (strand:sio vase)
   ^-  form:m
   ?:  =(~ schedules)
     %-  pure:m
     !>('nothing to schedule, add schedules and rerun')
-  ;<  events=(list (pair path @da))  bind:m
-    =/  m  (strand:sio (list (pair path @da)))
+  ;<  events=(list (pair strand-id:sur @da))  bind:m
+    =/  m  (strand:sio (list (pair strand-id:sur @da)))
     ^-  form:m
     ;<  now=@da  bind:m  get-time:sio
-    =/  events=(list (pair path @da))
-      (turn schedules |=([p=path g=$-(@da @da)] [p (g now)]))
+    =/  events=(list (pair strand-id:sur @da))
+      (turn schedules |=([p=strand-id:sur g=$-(@da @da)] [p (g now)]))
     ::
     =.  events  (sort events cmp-events)
     ?>  (gth q.i.-.events now)
@@ -185,8 +185,8 @@
     ;<  *  bind:m  (poke-us [%run p.i.events])
     $(events t.events)
   ::
-  =/  events-new=(list (pair path @da))
-    (turn schedules |=([p=path g=$-(@da @da)] [p (g now)]))
+  =/  events-new=(list (pair strand-id:sur @da))
+    (turn schedules |=([p=strand-id:sur g=$-(@da @da)] [p (g now)]))
   =.  events-new  (sort events-new cmp-events)
   ?>  (gth q.i.-.events-new now)
   forever-loop(events events-new)
