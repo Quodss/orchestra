@@ -942,7 +942,7 @@
       background-color: white;
     }
     pre {
-      width: 80ch
+      width: 80ch;
       max-width: 80ch;
       min-width: 80ch;
       font-family: monospace;
@@ -951,9 +951,9 @@
       border: 1px solid #ccc;
       border-radius: 6px;
       padding: 10px;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      overflow: visible;
+      white-space: pre;
+      overflow-x: auto;
+      overflow-y: auto;
       margin: 0;      
     }
     h2 {
@@ -973,6 +973,9 @@
       padding: 10px;
       display: block;
       margin: 10px auto;
+      white-space: pre;
+      overflow-x: auto;
+      overflow-y: auto;
     }
     #script-name {
       width: 30ch;
