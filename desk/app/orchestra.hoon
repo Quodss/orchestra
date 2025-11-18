@@ -105,7 +105,11 @@
       ::
       =^  l-cards  l.strands.state  $(strands.state l.strands.state)
       =^  r-cards  r.strands.state  $(strands.state r.strands.state)
-      [(zing n-cards l-cards r-cards ~) strands.state(awaits-timer.q.n |)]
+      :-  (zing n-cards l-cards r-cards ~)
+      %=  strands.state
+        awaits-timer.q.n  |
+        is-running.q.n    awaits-timer.q.n.strands.state
+      ==
     ::
     [(weld cards-stop cards-run) this]
   ::
