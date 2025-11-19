@@ -199,6 +199,7 @@
   ^-  form:m
   ;<  now=@da  bind:m  get-time:sio
   =/  zen=@da  (mul ~m1 (div (add now (sub ~m1 1)) ~m1))
+  ~&  [%cron-wait-till zen]
   (wait:sio zen)
 ::
 ++  cron-scheduler
