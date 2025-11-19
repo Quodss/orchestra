@@ -26,10 +26,10 @@
     ::  allowed values: 1-12 (in sync with +yore)
     ::
       mon=range
-    ::  allowed-values: 0-6
+    ::  allowed-values: 1-7  (Monday first)
     ::  day of week, number in month
-    ::  e.g. any Thursday: [3 0]
-    ::  2nd Monday of the month: [0 2]
+    ::  e.g. any Thursday: [4 0]
+    ::  2nd Monday of the month: [1 2]
     ::
       wek=(list [val=@ud num=@])
     ==
@@ -39,7 +39,7 @@
   ++  valid-dow
     |=  [val=@ud num=@]
     ^-  ?
-    (lth val 7)
+    &((lte 1 val) (lte val 7))
   ::
   ++  valid-range
     |=  [r=range min=@ud max=@ud]
@@ -82,7 +82,7 @@
   ++  dow
     |=  now=@da
     ^-  @ud
-    (mod (add 5 (div now ~d1)) 7)
+    .+((mod (add 5 (div now ~d1)) 7))
   ::
   ++  valid-day
     |=  [now=@da s=schedule]
