@@ -111,14 +111,14 @@
   ++  valid-hour
     |=  [now=@da s=schedule]
     ^-  ?
-    =/  =date  (yore now)
-    (range-check h.t.date hor.s)
+    =/  =tarp  (yell now)
+    (range-check h.tarp hor.s)
   ::
   ++  valid-minute
     |=  [now=@da s=schedule]
     ^-  ?
-    =/  =date  (yore now)
-    (range-check m.t.date min.s)
+    =/  =tarp  (yell now)
+    (range-check m.tarp min.s)
   ::
   ++  cron
     |=  s=schedule
@@ -183,4 +183,38 @@
   =.  events-new  (sort events-new cmp-events)
   ?>  (gth q.i.-.events-new now)
   forever-loop(events events-new)
+::
+++  murn-valid-time
+  |=  [now=@da our=@p]
+  |=  [id=strand-id:sur s=schedule:cron]
+  ^-  (unit card:agent:gall)
+  ?.  (valid-minute:cron now s)  ~
+  ?.  (valid-hour:cron now s)    ~
+  ?.  (valid-day:cron now s)     ~
+  =/  act=action:sur  [%run id]
+  `[%pass /poke %agent [our %orchestra] %poke orchestra-action+!>(act)]
+::
+++  wait-top-minute
+  =/  m  (strand:sio ,~)
+  ^-  form:m
+  ;<  now=@da  bind:m  get-time:sio
+  =/  zen=@da  (mul ~m1 (div (add now (sub ~m1 1)) ~m1))
+  (wait:sio zen)
+::
+++  cron-scheduler
+  |=  schedules=(list (pair strand-id:sur schedule:cron))
+  =/  m  (strand:sio vase)
+  ^-  form:m
+  ?:  =(~ schedules)
+    %-  pure:m
+    !>('nothing to schedule, add schedules and rerun')
+  |-  ^-  form:m  ::  never return
+  =*  forever-loop  $
+  ;<  *  bind:m  wait-top-minute
+  ;<  bol=bowl:strand:sio  bind:m  get-bowl:sio
+  =/  cards=(list card:agent:gall)
+    (murn schedules (murn-valid-time now.bol our.bol))
+  ::
+  ;<  *  bind:m  (send-raw-cards:sio cards)
+  forever-loop
 --
