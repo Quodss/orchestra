@@ -18,6 +18,7 @@
       is-running=?
       params-counter=@
       awaits-timer=?
+      hash=@uv
   ==
 ::
 +$  state-0
@@ -204,6 +205,7 @@
           [ %timer
             (scot %ud suspend-counter.state)
             (scot %ud params-counter.u.strand)
+            (scot %uv hash.u.strand)
             id
           ]
         ::
@@ -211,16 +213,19 @@
       ::
       [cards this]
     ::
-        [%timer @ta @ta *]
+        [%timer @ta @ta @ta *]
       =/  suspend-counter  (slav %ud i.t.wire)
       =/  params-counter   (slav %ud i.t.t.wire)
-      =*  id  t.t.t.wire
+      =/  hash             (slav %uv i.t.t.t.wire)
+      =*  id  t.t.t.t.wire
       ?>  ?=([%behn %wake *] sign-arvo)
       ?.  =(suspend-counter suspend-counter.state)
         `this
       ?~  strand=(~(get by strands.state) id)
         `this
       ?.  =(params-counter params-counter.u.strand)
+        `this
+      ?.  =(hash hash.u.strand)
         `this
       =+  ?~(error.sign-arvo ~ ((slog u.error.sign-arvo) ~))  =>  +
       =^  cards=(list card)  this
@@ -342,7 +347,9 @@
         ~&  >>  %orchestra-id-already-present
         `state
       :-  ~[(emit-run id.act src.act)]
-      state(strands (~(put by strands.state) [id [src params & 0 |]]:act))
+      =/  hash=@uv  (shax (jam %orchestra eny.bowl act))
+      =,  act
+      state(strands (~(put by strands.state) id [src params & 0 | hash]))
     ::
         %del
       =.  products.state  (~(del by products.state) id.act)
