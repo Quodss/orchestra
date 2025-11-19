@@ -128,11 +128,15 @@
     ::  round up to minutes
     ::
     =/  zen=@da  (mul ~m1 (div (add now (sub ~m1 1)) ~m1))
+    ::  at most 40 years without a match (Feb 29 on a given weekday)
+    ::
+    =/  lim=@da  (add now ~d14610)
     ::  while invalid day:  add ~d1, round down to ~d1
     ::  while invalid hour: add ~h1, round down to ~h1
     ::  while invalid min:  add ~m1, round down to ~m1
     ::
     |-  ^-  @da
+    ?>  (lte zen lim)
     ?.  (valid-day zen s)     $(zen (mul ~d1 +((div zen ~d1))))
     ?.  (valid-hour zen s)    $(zen (mul ~h1 +((div zen ~h1))))
     ?.  (valid-minute zen s)  $(zen (mul ~m1 +((div zen ~m1))))
