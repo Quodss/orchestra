@@ -201,7 +201,8 @@
   =/  zen=@da  (mul ~m1 (div (add now (sub ~m1 1)) ~m1))
   ~&  [%cron-wait-till zen]
   (wait:sio zen)
-::
+::  doesn't really work in nonpreemptive context
+::  
 ++  cron-scheduler
   |=  schedules=(list (pair strand-id:sur schedule:cron))
   =/  m  (strand:sio vase)
