@@ -349,7 +349,8 @@
       :-  ~[(emit-run id.act src.act)]
       =/  hash=@uv  (shax (jam %orchestra eny.bowl act))
       =,  act
-      state(strands (~(put by strands.state) id [src params & 0 | hash]))
+      =.  strands.state  (~(put by strands.state) id [src params & 0 | hash])
+      [~[(emit-run id.act src.act)] state]
     ::
         %del
       =.  products.state  (~(del by products.state) id.act)
