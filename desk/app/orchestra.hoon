@@ -346,7 +346,6 @@
       ?:  (~(has by strands.state) id.act)
         ~&  >>  %orchestra-id-already-present
         `state
-      :-  ~[(emit-run id.act src.act)]
       =/  hash=@uv  (shax (jam %orchestra eny.bowl act))
       =,  act
       =.  strands.state  (~(put by strands.state) id [src params & 0 | hash])
@@ -647,7 +646,10 @@
     ;~  pfix
       (jest '##')
       gap
-      ;~(sfix (more (jest ', ') ;~((glue tis) sym stap)) gap)
+      ;~  pose
+        ;~(sfix (more (jest ', ') ;~((glue tis) sym stap)) gap)
+        (easy ~)
+      ==
     ==
   ::
   ++  report-parser-fail
@@ -788,9 +790,10 @@
     ^-  [tape tape]
     :-  (make-tape k)
     =-  ?~  run-every.params.v  -
-        (weld "@@  {<u.run-every.params.v>}\0a" -)
+        (weld "@@  {<u.run-every.params.v>}\0a::\0a" -)
     ?-    -.src.v
         %hoon
+      ?:  =(~ deps.src.v)  (trip txt.src.v)
       """
       ##  {(render-deps deps.src.v)}
       ::
@@ -1168,10 +1171,10 @@
   ++  emit-run
     |=  [id=strand-id src=strand-source]
     ^-  card
-    (send-shed build-strand+id (build-src src))
+    (send-shed build-strand+id (build-src id src))
   ::
   ++  build-src
-    |=  src=strand-source
+    |=  [id=strand-id src=strand-source]
     ^-  shed:khan
     =/  m  (strand vase)
     ;<  res=(each vase tang)  bind:m
@@ -1180,6 +1183,13 @@
       ?-    -.src
           %hoon
         =/  build=vase  !>(..zuse)
+        =/  start-line=@ud
+          =/  n=@ud  1
+          =?  n  ?=(^ deps.src)  (add 2 n)
+          =/  run-every  run-every:params:(~(got by strands.state) id)
+          =?  n  ?=(^ run-every)  (add 2 n)
+          n
+        ::
         |-  ^-  form:m
         ?^  deps.src
           =*  dep  i.deps.src
@@ -1194,7 +1204,12 @@
           $(deps.src t.deps.src, build (slop u.vax build))
         %-  pure:m
         ^-  (each vase tang)
-        =/  [=hair res=(unit [=hoon =nail])]  (vest [1 1] (trip txt.src))
+        =/  [=hair res=(unit [=hoon =nail])]
+          %.  [[start-line 1] (trip txt.src)]
+          %-  full
+          %+  ifix  [gay gay]
+          tall:(vang & [name-term %hoon-thread id])
+        ::
         ?~  res  |+(report-parser-fail hair txt.src)
         =/  pro
           %-  ~(mule vi |)
