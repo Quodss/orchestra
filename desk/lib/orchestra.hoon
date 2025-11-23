@@ -216,11 +216,10 @@
     !>('nothing to schedule, add schedules and rerun')
   |-  ^-  form:m  ::  never return
   =*  forever-loop  $
-  ;<  *  bind:m  wait-top-minute
+  ;<  *                    bind:m  wait-top-minute
   ;<  bol=bowl:strand:sio  bind:m  get-bowl:sio
-  =/  cards=(list card:agent:gall)
-    (murn schedules (murn-valid-time now.bol our.bol))
+  ;<  *  bind:m
+    (send-raw-cards:sio (murn schedules (murn-valid-time now.bol our.bol)))
   ::
-  ;<  *  bind:m  (send-raw-cards:sio cards)
   forever-loop
 --

@@ -71,8 +71,23 @@
       hc   ~(. helper-core bowl)
   ::
   ++  on-init
-    :_  this  :_  ~
-    [%pass /eyre/connect %arvo %e %connect `/apps/[name-term] name-term]
+    =+  .^  tree=(list (list tid:spider))
+          %gx
+          /(scot %p our.bowl)/spider/(scot %da now.bowl)/tree/noun
+        ==
+    ::
+    :_  this
+    ^-  (list card)
+    :-  [%pass /eyre/connect %arvo %e %connect `/apps/[name-term] name-term]
+    ^-  (list card)
+    %+  murn  tree
+    |=  id=(list tid:spider)
+    ^-  (unit card)
+    ?.  ?=([tid:spider ~] id)  ~
+    ?.  =(name-term (cut 3 [0 (met 3 name-term)] i.id))
+      ~
+    ~&  ['stopping script from previous installation: ' i.id]
+    `(poke-spider:hc /cancel %spider-stop !>([i.id |]))
   ::
   ++  on-save   !>(state)
   ++  on-load
