@@ -15,6 +15,8 @@
       [%upd id=strand-id params=strand-params]
       [%wipe ~]
       [%run id=strand-id]
+      [%run-defer id=strand-id at=time]
       [%clear id=strand-id]
+      [%stop id=strand-id]
   ==
 --
