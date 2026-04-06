@@ -52,7 +52,7 @@
       products=(map strand-id (pair (each vase tang) time))
   ==
 ::
-+$  persistent  state-0
++$  persistent  state-1
 ::
 +$  message
   $%  [%error why=@t what=tang]
