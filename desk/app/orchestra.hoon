@@ -611,12 +611,16 @@
       |^  ^-  persistent
       ?-  version.ver-state
         %1  ver-state
-        %0  $(ver-state from-0-to-1)
+        %0  $(ver-state (from-0-to-1 ver-state))
       ==
       ::
       ++  from-0-to-1
+        |=  ver-state=state-0
         |^  ^-  state-1
-        ver-state(products (~(run by products.ver-state) update-product))
+        %=  ver-state
+          version   %1
+          products  (~(run by products.ver-state) update-product)
+        ==
         ::
         ++  update-product
           |=  v=(pair (each vase:h136 tang) time)
