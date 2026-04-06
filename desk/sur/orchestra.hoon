@@ -33,11 +33,20 @@
 ::
 +$  versioned-persistent-state
   $%  state-0
+      state-1
   ==
 ::
 +$  state-0
   $+  state-0
   $:  version=%0
+      suspend-counter=@
+      strands=(map strand-id strand-state)
+      products=(map strand-id (pair (each vase:h136 tang) time))
+  ==
+::
++$  state-1
+  $+  state-1
+  $:  version=%1
       suspend-counter=@
       strands=(map strand-id strand-state)
       products=(map strand-id (pair (each vase tang) time))

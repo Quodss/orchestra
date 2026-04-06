@@ -608,7 +608,28 @@
     |=  old=vase
     ^-  [(list card) _this]
     =/  ver-state  !<(versioned-persistent-state old)
-    =.  -.state  ver-state
+    =/  loaded-state=state-1
+      |^  ^-  state-1
+      ?-  version.ver-state
+        %1  ver-state
+        %0  $(ver-state from-0-to-1)
+      ==
+      ::
+      ++  from-0-to-1
+        |^  ^-  state-1
+        ver-state(products (~(run by products.ver-state update-product)))
+        ::
+        ++  update-product
+          |=  v=(pair (each vase:h136 tang) time)
+          ^-  (pair (each vase tang) time)
+          =-  v(p -)
+          ^-  (each vase tang)
+          ?:  ?=(%| -.p.v)  p.v
+          p.v(p (next-vase:h136 p.p.v))
+        --
+      --
+    ::
+    =.  -.state  loaded-state
     ::  stop all old threads on load
     ::  we do that by hand and not by poking ourselves with %stop
     ::  because we want to create the stop cards before the imminent
