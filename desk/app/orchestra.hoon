@@ -43,7 +43,6 @@
   $:  =polling
   ==
 ::
-+$  persistent  state-0
 +$  state  [persistent transient-state]
 +$  card  card:agent:gall
 +$  sign  sign:agent:gall
@@ -608,8 +607,8 @@
     |=  old=vase
     ^-  [(list card) _this]
     =/  ver-state  !<(versioned-persistent-state old)
-    =/  loaded-state=state-1
-      |^  ^-  state-1
+    =/  loaded-state=persistent
+      |^  ^-  persistent
       ?-  version.ver-state
         %1  ver-state
         %0  $(ver-state from-0-to-1)
@@ -856,7 +855,7 @@
           `this
         =.  polling.state
           %-  ~(rep by polling.state)
-          |=  [[k=time v=[stale=? s=state-0]] acc=polling]
+          |=  [[k=time v=[stale=? s=persistent]] acc=polling]
           ^+  acc
           ?:  stale.v  acc
           (~(put by acc) k v(stale &))
