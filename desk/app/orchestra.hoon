@@ -616,7 +616,7 @@
       ::
       ++  from-0-to-1
         |^  ^-  state-1
-        ver-state(products (~(run by products.ver-state update-product)))
+        ver-state(products (~(run by products.ver-state) update-product))
         ::
         ++  update-product
           |=  v=(pair (each vase:h136 tang) time)
