@@ -623,12 +623,10 @@
         ==
         ::
         ++  update-product
-          |=  v=(pair (each vase:h136 tang) time)
-          ^-  (pair (each vase tang) time)
-          =-  v(p -)
-          ^-  (each vase tang)
-          ?:  ?=(%| -.p.v)  p.v
-          p.v(p (next-vase:h136 p.p.v))
+          |=  prod=[(each vase:h136 tang) time]
+          ^-  [(each vase tang) time]
+          ?.  ?=([[%& v=*] *] prod)  prod
+          prod(v (next-vase:h136 v.prod))
         --
       --
     ::
