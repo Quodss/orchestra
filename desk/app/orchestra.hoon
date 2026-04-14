@@ -626,7 +626,7 @@
           |=  prod=[(each vase:h136 tang) time]
           ^-  [(each vase tang) time]
           ?.  ?=([[%& v=*] *] prod)  prod
-          prod(v (next-vase:h136 v.prod))
+          prod(v (next-vase:h136 v.p.prod))
         --
       --
     ::
