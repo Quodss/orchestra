@@ -1082,8 +1082,8 @@
     ::
       ;<  =cage  bind:m  (take-fact:sio wir)
       ?+    p.cage  ~|(%weird-mark !!)
-          %state
-        =+  !<(new=persistent q.cage)
+          %noun
+        =+  !<(new=persistent [-:!>(*persistent) +.q.q.cage])
         ?~  diff=(get-state-diff stash new)
           $(stash new)
         ;<  ~  bind:m  (send-rest-prefix till time-wir)
@@ -1991,7 +1991,7 @@
   ::
   ++  send-fact-state
     ^-  card
-    [%give %fact ~[/state-updates] %state !>(persistent-state)]
+    [%give %fact ~[/state-updates] %noun !>([%persistent persistent-state])]
   ::
   ++  send-fact-message
     |=  msg=message
